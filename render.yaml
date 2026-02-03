@@ -16,6 +16,7 @@ services:
     buildCommand: npm install
     startCommand: npm start
     autoDeployTrigger: commit
+    healthCheckPath: /
 
     envVars:
       - key: NODE_ENV

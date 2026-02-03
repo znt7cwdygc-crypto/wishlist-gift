@@ -37,7 +37,8 @@ npm start
 Откройте http://localhost:3000
 
 📖 **Подробные инструкции:** См. [QUICKSTART.md](./QUICKSTART.md)  
-🤖 **Интеграция с Telegram (deep links, Stars):** См. [TELEGRAM_INTEGRATION.md](./TELEGRAM_INTEGRATION.md)
+🤖 **Интеграция с Telegram (deep links, Stars):** См. [TELEGRAM_INTEGRATION.md](./TELEGRAM_INTEGRATION.md)  
+🚀 **Render (автодеплой):** См. [RENDER_SETUP.md](./RENDER_SETUP.md)
 
 ## 📁 Структура проекта
 
