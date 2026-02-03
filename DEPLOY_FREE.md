@@ -49,6 +49,8 @@ git push -u origin main
    - `DATABASE_URL` = (вставьте Internal Database URL из п. 2.1)
    - `APP_URL` = `https://YOUR-APP.onrender.com` (ваш URL после деплоя)
    - `BOT_USERNAME` = `WishlistGiftBot` (username вашего бота без @)
+   - `BOT_TOKEN` = токен от @BotFather (обязателен для авторизации через Telegram)
+   - `JWT_SECRET` = случайная строка (например, сгенерируйте: `openssl rand -hex 32`)
    - `CORS_ORIGIN` = `*`
 
 5. **Create Web Service**

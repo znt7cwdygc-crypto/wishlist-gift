@@ -5,7 +5,7 @@ const express = require('express');
 const router = express.Router();
 
 router.get('/', (req, res) => {
-    const appUrl = process.env.APP_URL || (req.protocol + '://' + req.get('host'));
+    const appUrl = process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || (req.protocol + '://' + req.get('host'));
     res.json({
         appUrl,
         botUsername: process.env.BOT_USERNAME || 'WishlistGiftBot',

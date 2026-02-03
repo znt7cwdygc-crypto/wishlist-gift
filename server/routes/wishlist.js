@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const auth = require('../middleware/auth');
 
 // Маппинг для API response
 function mapItem(row) {
@@ -25,10 +26,10 @@ function mapItem(row) {
     };
 }
 
-// Получить вишлист (model_id=1 по умолчанию)
-router.get('/', async (req, res) => {
+// Получить вишлист текущего пользователя (кабинет модели) — требует авторизации
+router.get('/', auth, async (req, res) => {
     try {
-        const modelId = 1;
+        const modelId = req.user.id;
         const result = await db.query(
             'SELECT * FROM wishlist_items WHERE model_id = $1 AND is_active = true ORDER BY created_at DESC',
             [modelId]
@@ -77,8 +78,8 @@ router.get('/by-slug/:slug', async (req, res) => {
     }
 });
 
-// Создать товар
-router.post('/items', async (req, res, next) => {
+// Создать товар — требует авторизации
+router.post('/items', auth, async (req, res, next) => {
     try {
         const { name, description, url, price, currency, baseStars, feeStars, totalStars, photos } = req.body;
         
@@ -96,7 +97,7 @@ router.post('/items', async (req, res, next) => {
         }
         
         const photosArr = Array.isArray(photos) ? photos : [];
-        const modelId = 1;
+        const modelId = req.user.id;
         
         const result = await db.query(
             `INSERT INTO wishlist_items 
@@ -125,10 +126,11 @@ router.post('/items', async (req, res, next) => {
     }
 });
 
-// Обновить товар
-router.put('/items/:id', async (req, res) => {
+// Обновить товар — требует авторизации
+router.put('/items/:id', auth, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
+        const modelId = req.user.id;
         const { name, description, url, price, currency, baseStars, feeStars, totalStars, photos } = req.body;
         
         const result = await db.query(
@@ -143,7 +145,7 @@ router.put('/items/:id', async (req, res) => {
                 total_stars = COALESCE($9, total_stars),
                 photos = COALESCE($10::jsonb, photos),
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = $1 AND is_active = true
+            WHERE id = $1 AND model_id = $11 AND is_active = true
             RETURNING *`,
             [
                 id,
@@ -155,7 +157,8 @@ router.put('/items/:id', async (req, res) => {
                 baseStars != null ? parseInt(baseStars) : null,
                 feeStars != null ? parseInt(feeStars) : null,
                 totalStars != null ? parseInt(totalStars) : null,
-                photos ? JSON.stringify(Array.isArray(photos) ? photos : []) : null
+                photos ? JSON.stringify(Array.isArray(photos) ? photos : []) : null,
+                modelId
             ]
         );
         
@@ -169,13 +172,14 @@ router.put('/items/:id', async (req, res) => {
     }
 });
 
-// Удалить товар (soft delete)
-router.delete('/items/:id', async (req, res) => {
+// Удалить товар (soft delete) — требует авторизации
+router.delete('/items/:id', auth, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
+        const modelId = req.user.id;
         const result = await db.query(
-            'UPDATE wishlist_items SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id',
-            [id]
+            'UPDATE wishlist_items SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND model_id = $2 RETURNING id',
+            [id, modelId]
         );
         
         if (result.rows.length === 0) {

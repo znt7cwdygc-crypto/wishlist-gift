@@ -35,8 +35,8 @@ async function loadWishlist() {
             document.getElementById('model-name').textContent = 'Вишлист';
         }
         
-        // Загружаем товары
-        wishlistItems = await apiRequest('/wishlist');
+        // Загружаем товары по slug
+        wishlistItems = await apiRequest(`/wishlist/by-slug/${slug}`);
         renderGifts();
     } catch (error) {
         console.error('Error loading wishlist:', error);
@@ -195,11 +195,27 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// Авторизация (для оплаты — donor_telegram_id берётся из токена)
+async function ensureAuth() {
+    if (!tg?.initData) return;
+    if (localStorage.getItem('token')) return;
+    try {
+        const res = await fetch('/api/auth/telegram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ initData: tg.initData })
+        });
+        const data = await res.json();
+        if (data.token) localStorage.setItem('token', data.token);
+    } catch (_) {}
+}
+
 // Инициализация
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     if (tg) {
         tg.ready();
         tg.expand();
     }
+    await ensureAuth();
     loadWishlist();
 });

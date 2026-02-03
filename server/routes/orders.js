@@ -6,16 +6,24 @@ const express = require('express');
 const { randomUUID } = require('crypto');
 const router = express.Router();
 const db = require('../db');
+const { optionalAuth } = require('../middleware/auth');
 
 const RESERVE_MINUTES = 10;
 
 // Создать заказ (резерв позиции)
-router.post('/', async (req, res) => {
+router.post('/', optionalAuth, async (req, res) => {
     try {
-        const { item_id: itemId, model_id: modelId, donor_telegram_id: donorTelegramId, donor_username: donorUsername, amount_xtr: amountXtr, message } = req.body;
+        let { item_id: itemId, model_id: modelId, donor_telegram_id: donorTelegramId, donor_username: donorUsername, amount_xtr: amountXtr, message } = req.body;
         
-        if (!itemId || !modelId || donorTelegramId == null || amountXtr == null || amountXtr === '') {
+        if (!itemId || !modelId || amountXtr == null || amountXtr === '') {
             return res.status(400).json({ error: 'item_id, model_id, donor_telegram_id, amount_xtr обязательны' });
+        }
+        
+        if (req.user?.telegramId != null) {
+            donorTelegramId = req.user.telegramId;
+        }
+        if (donorTelegramId == null) {
+            return res.status(400).json({ error: 'donor_telegram_id обязателен. Откройте приложение через Telegram.' });
         }
         
         const orderId = randomUUID();

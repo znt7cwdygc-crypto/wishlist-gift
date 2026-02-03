@@ -301,12 +301,25 @@ function renderBalance() {
 // Настройки
 // =====================================================
 
-function loadSettings() {
+async function loadSettings() {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
     settings = stored.settings || { name: '', bio: '', isPublic: true, invites: [] };
     
-    document.getElementById('settings-name').value = settings.name || '';
-    document.getElementById('settings-bio').value = settings.bio || '';
+    try {
+        const profile = await apiRequest('/models/me');
+        if (profile) {
+            settings.name = profile.firstName || '';
+            settings.bio = profile.profile?.bio || '';
+            document.getElementById('settings-name').value = profile.firstName || '';
+            document.getElementById('settings-bio').value = profile.profile?.bio || '';
+        } else {
+            document.getElementById('settings-name').value = settings.name || '';
+            document.getElementById('settings-bio').value = settings.bio || '';
+        }
+    } catch (_) {
+        document.getElementById('settings-name').value = settings.name || '';
+        document.getElementById('settings-bio').value = settings.bio || '';
+    }
     
     const toggle = document.getElementById('privacy-toggle');
     if (settings.isPublic) {
@@ -320,15 +333,25 @@ function loadSettings() {
     renderInvites();
 }
 
-function saveSettings() {
+async function saveSettings() {
     settings.name = document.getElementById('settings-name').value;
     settings.bio = document.getElementById('settings-bio').value;
     
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    stored.settings = settings;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
-    
-    alert('Сохранено!');
+    try {
+        await apiRequest('/models/me', {
+            method: 'PUT',
+            body: JSON.stringify({
+                firstName: settings.name,
+                bio: settings.bio
+            })
+        });
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        stored.settings = settings;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+        alert('Сохранено!');
+    } catch (e) {
+        alert('Ошибка: ' + (e.message || 'Не удалось сохранить'));
+    }
 }
 
 function togglePrivacy() {
@@ -401,9 +424,13 @@ function renderInvites() {
 
 async function copyLink() {
     try {
+        const profile = await apiRequest('/models/me').catch(() => null);
         const cfg = await fetch('/api/config').then(r => r.json());
-        const link = cfg.shareLink || `https://t.me/WishlistGiftBot?start=me`;
-        document.getElementById('public-link').textContent = link.replace('https://', '');
+        const bot = cfg.botUsername || 'WishlistGiftBot';
+        const slug = profile?.profile?.publicSlug || profile?.profile?.publicLink || 'me';
+        const link = `https://t.me/${bot}?start=${slug}`;
+        const el = document.getElementById('public-link');
+        if (el) el.textContent = link.replace('https://', '');
         await navigator.clipboard.writeText(link);
         alert('Ссылка скопирована!');
     } catch (e) {
@@ -415,9 +442,16 @@ async function copyLink() {
 
 async function loadShareLink() {
     try {
-        const cfg = await fetch('/api/config').then(r => r.json());
+        const [cfg, profile] = await Promise.all([
+            fetch('/api/config').then(r => r.json()),
+            apiRequest('/models/me').catch(() => null)
+        ]);
+        const bot = cfg.botUsername || 'WishlistGiftBot';
+        const slug = profile?.profile?.publicSlug || profile?.profile?.publicLink || 'me';
+        const link = `https://t.me/${bot}?start=${slug}`;
+        window.__BOT_USERNAME__ = bot;
         const el = document.getElementById('public-link');
-        if (el) el.textContent = cfg.shareLink?.replace('https://', '') || 't.me/WishlistGiftBot?start=me';
+        if (el) el.textContent = link.replace('https://', '');
     } catch (_) {}
 }
 
@@ -469,15 +503,63 @@ async function resizeImage(file) {
 }
 
 // =====================================================
+// Авторизация через Telegram
+// =====================================================
+
+async function initAuth() {
+    if (!tg?.initData) {
+        showAuthError('Откройте приложение через Telegram: нажмите меню бота или перейдите по ссылке t.me/YourBot?start=me');
+        return false;
+    }
+
+    try {
+        const res = await fetch('/api/auth/telegram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ initData: tg.initData })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showAuthError(data.error || 'Ошибка авторизации');
+            return false;
+        }
+
+        if (data.token) {
+            localStorage.setItem('token', data.token);
+        }
+        return true;
+    } catch (e) {
+        console.error('Auth error:', e);
+        showAuthError('Не удалось авторизоваться. Проверьте интернет и попробуйте снова.');
+        return false;
+    }
+}
+
+function showAuthError(message) {
+    document.body.innerHTML = `
+        <div class="screen-center" style="padding: 24px; text-align: center;">
+            <div class="screen-icon" style="font-size: 48px;">🔐</div>
+            <div class="screen-title" style="margin-bottom: 12px;">Требуется Telegram</div>
+            <p class="text-secondary" style="margin-bottom: 24px;">${escapeHtml(message)}</p>
+            <a href="https://t.me/${(window.__BOT_USERNAME__ || 'WishlistGiftBot')}" class="btn btn-primary">Открыть в Telegram</a>
+        </div>
+    `;
+}
+
+// =====================================================
 // Инициализация
 // =====================================================
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     if (tg) {
         tg.ready();
         tg.expand();
     }
-    
+
+    const authed = await initAuth();
+    if (!authed) return;
+
     loadShareLink();
     loadMyGifts();
     loadEvents();
