@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Мой вишлист</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>">
+    <link rel="stylesheet" href="/css/app.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="app">
+        <!-- Вкладка: Мой вишлист -->
+        <div id="tab-wishlist" class="screen active">
+            <header class="app-header">
+                <div class="text-lg">Мой вишлист</div>
+            </header>
+            
+            <main class="app-content">
+                <!-- Главный CTA: скопировать ссылку -->
+                <div class="link-section">
+                    <div class="text-lg">Поделитесь ссылкой</div>
+                    <div class="link-preview" id="public-link">t.me/WishlistGiftBot?start=me</div>
+                    <button class="btn btn-primary" onclick="copyLink()">
+                        📋 Скопировать ссылку
+                    </button>
+                </div>
+                
+                <!-- Список подарков -->
+                <div class="flex justify-between items-center mb-3">
+                    <div class="font-semibold">Подарки</div>
+                    <button class="btn btn-ghost" onclick="showAddGift()" style="width: auto;">
+                        + Добавить
+                    </button>
+                </div>
+                
+                <div id="my-gifts-list" class="gifts-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">🎁</div>
+                        <div class="empty-title">Пока пусто</div>
+                        <div class="empty-text">Добавьте первый подарок</div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Вкладка: Поступления -->
+        <div id="tab-events" class="screen">
+            <header class="app-header">
+                <div class="text-lg">Поступления</div>
+            </header>
+            
+            <main class="app-content">
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="today">Сегодня</button>
+                    <button class="filter-tab" data-filter="week">Неделя</button>
+                    <button class="filter-tab" data-filter="all">Все</button>
+                </div>
+                
+                <div id="events-feed" class="feed-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">💫</div>
+                        <div class="empty-title">Пока нет поступлений</div>
+                        <div class="empty-text">Поделитесь ссылкой на вишлист</div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Вкладка: Баланс -->
+        <div id="tab-balance" class="screen">
+            <header class="app-header">
+                <div class="text-lg">Баланс</div>
+            </header>
+            
+            <main class="app-content">
+                <div class="stats-row">
+                    <div class="stat-block pending">
+                        <div class="stat-value" id="balance-pending">0 ⭐</div>
+                        <div class="stat-label">В ожидании</div>
+                    </div>
+                    <div class="stat-block available">
+                        <div class="stat-value" id="balance-available">0 ⭐</div>
+                        <div class="stat-label">Доступно</div>
+                    </div>
+                    <div class="stat-block withdrawn">
+                        <div class="stat-value" id="balance-withdrawn">0 ⭐</div>
+                        <div class="stat-label">Выведено</div>
+                    </div>
+                </div>
+                
+                <div class="text-sm text-secondary mb-4" style="background: var(--bg-secondary); padding: 12px; border-radius: var(--radius);">
+                    ℹ️ Telegram удерживает Stars 21 день перед выводом
+                </div>
+                
+                <div id="withdraw-section">
+                    <button id="withdraw-btn" class="btn btn-primary" disabled>
+                        Вывести
+                    </button>
+                    <p id="withdraw-hint" class="text-sm text-secondary text-center mt-2">
+                        Ещё 1000 ⭐ до вывода
+                    </p>
+                </div>
+            </main>
+        </div>
+
+        <!-- Вкладка: Настройки -->
+        <div id="tab-settings" class="screen">
+            <header class="app-header">
+                <div class="text-lg">Настройки</div>
+            </header>
+            
+            <main class="app-content">
+                <!-- Режим доступа -->
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">Публичный доступ</div>
+                        <div class="setting-hint">Любой может открыть ваш вишлист</div>
+                    </div>
+                    <div id="privacy-toggle" class="toggle active" onclick="togglePrivacy()"></div>
+                </div>
+                
+                <!-- Инвайт-ссылки (только если приватный режим) -->
+                <div id="invites-section" class="hidden">
+                    <div class="setting-row" style="border: none;">
+                        <div class="setting-label">Инвайт-ссылки</div>
+                        <button class="btn btn-ghost" onclick="createInvite()" style="width: auto;">
+                            + Создать
+                        </button>
+                    </div>
+                    
+                    <div id="invites-list" class="invites-list">
+                        <!-- Инвайты будут добавляться динамически -->
+                    </div>
+                </div>
+                
+                <!-- Профиль -->
+                <div class="mt-4">
+                    <div class="font-semibold mb-3">Профиль</div>
+                    <div class="form-group">
+                        <label class="form-label">Имя</label>
+                        <input type="text" id="settings-name" class="form-input" placeholder="Ваше имя">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Описание</label>
+                        <textarea id="settings-bio" class="form-textarea" rows="2" placeholder="Коротко о себе..."></textarea>
+                    </div>
+                    <button class="btn btn-secondary" onclick="saveSettings()">
+                        Сохранить
+                    </button>
+                </div>
+            </main>
+        </div>
+
+        <!-- Экран: Добавить/Редактировать подарок -->
+        <div id="screen-add-gift" class="screen">
+            <header class="app-header flex justify-between items-center">
+                <button class="btn btn-ghost" onclick="closeAddGift()" style="width: auto; padding: 8px 0;">
+                    ← Назад
+                </button>
+                <div class="text-lg" id="add-gift-title">Новый подарок</div>
+                <div style="width: 60px;"></div>
+            </header>
+            
+            <main class="app-content">
+                <form id="gift-form">
+                    <input type="hidden" id="edit-gift-id">
+                    
+                    <div class="form-group">
+                        <label class="form-label">Фото</label>
+                        <label class="photo-upload">
+                            <input type="file" id="gift-photo" accept="image/*">
+                            <div>📷 Нажмите, чтобы добавить фото</div>
+                            <div id="photo-preview" class="photo-preview"></div>
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Название</label>
+                        <input type="text" id="gift-name" class="form-input" placeholder="Например: Духи Chanel" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">На что (необязательно)</label>
+                        <input type="text" id="gift-description" class="form-input" placeholder="Короткое пояснение">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Цена</label>
+                            <input type="number" id="gift-price" class="form-input" step="0.01" placeholder="120" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Валюта</label>
+                            <select id="gift-currency" class="form-select">
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="RUB">RUB</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Ссылка на товар</label>
+                        <input type="url" id="gift-url" class="form-input" placeholder="https://..." required>
+                    </div>
+                    
+                    <div class="text-sm text-secondary mb-3">
+                        К оплате: <strong id="stars-preview">0</strong> ⭐
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        Сохранить
+                    </button>
+                    
+                    <button type="button" id="delete-gift-btn" class="btn btn-secondary mt-2 hidden" style="background: #fee2e2; color: #ef4444;">
+                        Удалить
+                    </button>
+                </form>
+            </main>
+        </div>
+
+        <!-- Нижняя навигация -->
+        <nav class="app-nav" id="main-nav">
+            <button class="nav-btn active" data-tab="wishlist" onclick="showTab('wishlist')">
+                <span class="nav-btn-icon">🎁</span>
+                <span>Вишлист</span>
+            </button>
+            <button class="nav-btn" data-tab="events" onclick="showTab('events')">
+                <span class="nav-btn-icon">💫</span>
+                <span>Поступления</span>
+            </button>
+            <button class="nav-btn" data-tab="balance" onclick="showTab('balance')">
+                <span class="nav-btn-icon">💰</span>
+                <span>Баланс</span>
+            </button>
+            <button class="nav-btn" data-tab="settings" onclick="showTab('settings')">
+                <span class="nav-btn-icon">⚙️</span>
+                <span>Настройки</span>
+            </button>
+        </nav>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/cabinet.js"></script>
+</body>
+</html>

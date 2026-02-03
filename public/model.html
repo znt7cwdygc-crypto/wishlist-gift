@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мой профиль - Wishlist Gift</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Top Bar -->
+        <header class="header" style="margin-bottom: 0; border-radius: 12px 12px 0 0;">
+            <div class="header-content" style="flex-direction: row; justify-content: space-between; align-items: center;">
+                <a href="/" class="btn btn-ghost" style="color: white;">← Назад</a>
+                <h1 style="font-size: 1.25rem; margin: 0;">Мой профиль</h1>
+                <div class="language-switcher">
+                    <button class="lang-btn active" onclick="setLanguage('ru')">RU</button>
+                    <button class="lang-btn" onclick="setLanguage('en')">EN</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Profile Card - как в соцсети -->
+        <div class="profile-card">
+            <div class="profile-cover" id="model-cover">
+                <img id="model-cover-img" src="" alt="" style="display: none;">
+                <label class="profile-cover-edit btn btn-secondary btn-sm" style="opacity: 1; position: absolute; bottom: 1rem; right: 1rem;">
+                    📷 Изменить обложку
+                    <input type="file" id="model-cover-input" accept="image/*" hidden>
+                </label>
+            </div>
+            <div class="profile-info">
+                <div class="profile-avatar-wrap">
+                    <div class="profile-avatar" id="model-avatar">👩‍💼</div>
+                    <label class="profile-avatar-edit" style="opacity: 1;">
+                        📷
+                        <input type="file" id="model-avatar-input" accept="image/*" hidden>
+                    </label>
+                </div>
+                <div class="profile-meta">
+                    <input type="text" id="model-name" class="profile-name-input" placeholder="Ваше имя">
+                    <div class="profile-username">@wishlist · <code id="public-link" data-full-url="https://t.me/WishlistGiftBot?start=me" style="font-size: 0.85rem;">t.me/WishlistGiftBot?start=me</code></div>
+                    <textarea id="model-bio" class="profile-bio-input" placeholder="Расскажите о себе..." rows="3"></textarea>
+                    <div class="profile-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="copyLink()">📋 Копировать ссылку</button>
+                    </div>
+                </div>
+                <div class="profile-stats">
+                    <div class="profile-stat">
+                        <span class="profile-stat-value" id="stats-gifts">0</span>
+                        <span class="profile-stat-label">Подарков</span>
+                    </div>
+                    <div class="profile-stat">
+                        <span class="profile-stat-value" id="stats-items">0</span>
+                        <span class="profile-stat-label">В вишлисте</span>
+                    </div>
+                    <div class="profile-stat">
+                        <span class="profile-stat-value" id="stats-stars">0 ⭐</span>
+                        <span class="profile-stat-label">Stars</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="wishlist" onclick="showTab('wishlist')">Лента</button>
+            <button class="tab-btn" data-tab="add-item" onclick="showTab('add-item')">Добавить</button>
+            <button class="tab-btn" data-tab="statistics" onclick="showTab('statistics')">Статистика</button>
+        </nav>
+
+        <!-- Tab Content -->
+        <main class="main-content">
+            <!-- Wishlist Tab - лента товаров -->
+            <div id="wishlist-tab" class="tab-content active">
+                <div class="profile-feed">
+                    <div class="feed-header">Мой вишлист</div>
+                    <div id="wishlist-grid" class="wishlist-grid feed-style">
+                        <div class="empty-state" style="grid-column: 1 / -1; padding: 3rem;">
+                            <div class="empty-state-icon">🎁</div>
+                            <div class="empty-state-title">Ваш вишлист пока пуст</div>
+                            <div class="empty-state-text">Добавьте первый товар — так другие смогут порадовать вас подарком!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Item Tab -->
+            <div id="add-item-tab" class="tab-content">
+                <div class="profile-feed">
+                    <div class="feed-header">Новая публикация</div>
+                    <div style="padding: 1.5rem;">
+                        <form id="add-item-form">
+                            <div class="form-group">
+                                <label class="form-label">📷 Фото</label>
+                                <input type="file" id="item-photos" accept="image/*" multiple class="form-input">
+                                <div id="photo-preview" class="photo-gallery"></div>
+                            </div>
+                            <div class="form-group">
+                                <input type="text" id="item-name" class="form-input" placeholder="Название товара" required>
+                            </div>
+                            <div class="form-group">
+                                <textarea id="item-description" class="form-textarea" placeholder="Описание..." rows="2"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <input type="number" id="item-price" class="form-input" step="0.01" placeholder="Цена" required>
+                                </div>
+                                <div class="form-group">
+                                    <select id="item-currency" class="form-select">
+                                        <option value="USD">USD</option>
+                                        <option value="EUR">EUR</option>
+                                        <option value="RUB">RUB</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <input type="url" id="item-url" class="form-input" placeholder="Ссылка на товар" required>
+                            </div>
+                            <div class="mb-3">
+                                <span class="text-secondary">К оплате: </span><strong id="stars-amount" class="text-primary">0</strong> ⭐
+                            </div>
+                            <button type="submit" class="btn btn-primary w-full">Опубликовать</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Tab -->
+            <div id="statistics-tab" class="tab-content">
+                <div class="profile-feed">
+                    <div class="feed-header">Статистика</div>
+                    <div class="stats-grid" style="padding: 1.5rem;">
+                        <div class="stat-card">
+                            <div class="stat-icon">🎁</div>
+                            <div class="stat-value" id="total-gifts">0</div>
+                            <div class="stat-label">Подарков получено</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">⭐</div>
+                            <div class="stat-value" id="total-stars">0</div>
+                            <div class="stat-label">Всего Stars</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">💰</div>
+                            <div class="stat-value" id="earnings">$0</div>
+                            <div class="stat-label">Заработок</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Edit Item Modal -->
+    <div id="edit-modal" class="modal-overlay hidden" onclick="if(event.target === this) closeEditModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>Редактировать товар</h3>
+                <button class="modal-close" onclick="closeEditModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-item-form">
+                    <input type="hidden" id="edit-item-id">
+                    <div class="form-group">
+                        <label class="form-label">Название</label>
+                        <input type="text" id="edit-item-name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Описание</label>
+                        <textarea id="edit-item-description" class="form-textarea"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Цена</label>
+                            <input type="number" id="edit-item-price" class="form-input" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Валюта</label>
+                            <select id="edit-item-currency" class="form-select">
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="RUB">RUB</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ссылка</label>
+                        <input type="url" id="edit-item-url" class="form-input" required>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">Сохранить</button>
+                        <button type="button" class="btn btn-secondary" onclick="deleteItemFromModal()" style="background: #ef4444; color: white;">Удалить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/i18n.js"></script>
+    <script src="/js/model.js"></script>
+</body>
+</html>

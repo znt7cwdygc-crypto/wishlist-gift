@@ -1,0 +1,607 @@
+/* ============================================
+   Component Styles
+   ============================================ */
+
+/* Role Cards */
+.role-card {
+    text-align: center;
+    transition: var(--transition-slow);
+}
+
+.role-card:hover {
+    transform: translateY(-4px);
+}
+
+.role-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+/* Steps */
+.steps {
+    margin-top: 2rem;
+}
+
+.step-card {
+    text-align: center;
+    position: relative;
+}
+
+.step-number {
+    width: 3rem;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+    color: white;
+    border-radius: var(--radius-full);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 auto 1.5rem;
+    box-shadow: var(--shadow-lg);
+}
+
+/* ============================================
+   Social Network Profile Styles
+   ============================================ */
+
+/* Profile Card - соцсетевой вид */
+.profile-card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+}
+
+/* Cover / Banner - обложка профиля */
+.profile-cover {
+    width: 100%;
+    height: 240px;
+    position: relative;
+    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+    overflow: hidden;
+}
+
+.profile-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-cover-edit {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.profile-card:hover .profile-cover-edit {
+    opacity: 1;
+}
+
+/* Profile Info Block */
+.profile-info {
+    padding: 0 1.5rem 1.5rem;
+    position: relative;
+}
+
+.profile-avatar-wrap {
+    margin-top: -80px;
+    position: relative;
+    z-index: 2;
+}
+
+.profile-avatar {
+    width: 140px;
+    height: 140px;
+    border-radius: var(--radius-full);
+    border: 4px solid var(--surface);
+    background: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5rem;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-avatar-edit {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full);
+    background: var(--primary);
+    color: white;
+    border: 3px solid var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.2rem;
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.profile-avatar-wrap:hover .profile-avatar-edit {
+    opacity: 1;
+}
+
+/* Profile Meta */
+.profile-meta {
+    margin-top: 1rem;
+}
+
+.profile-name {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.profile-username {
+    font-size: 0.9375rem;
+    color: var(--text-tertiary);
+    margin-bottom: 0.75rem;
+}
+
+.profile-bio {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.profile-name-input,
+.profile-bio-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    color: inherit;
+}
+
+.profile-name-input {
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.profile-name-input:focus,
+.profile-bio-input:focus {
+    outline: none;
+}
+
+.profile-bio-input {
+    font-size: 1rem;
+    line-height: 1.6;
+    resize: none;
+}
+
+/* Profile Stats - как подписчики/подписки */
+.profile-stats {
+    display: flex;
+    gap: 2rem;
+    padding: 1rem 0;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.profile-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: default;
+}
+
+.profile-stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.profile-stat-label {
+    font-size: 0.8125rem;
+    color: var(--text-tertiary);
+}
+
+/* Profile Actions */
+.profile-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Legacy - Profile Banner (для обратной совместимости) */
+.profile-banner {
+    width: 100%;
+    height: 200px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    position: relative;
+    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+}
+
+.profile-banner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-header {
+    position: relative;
+    padding-top: 80px;
+    margin-bottom: 2rem;
+}
+
+/* Feed Layout - лента как в соцсети */
+.profile-feed {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+}
+
+.feed-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Wishlist Grid - сетка как в Instagram */
+.wishlist-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.wishlist-grid.feed-style {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    padding: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .wishlist-grid.feed-style {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.wishlist-item {
+    background: var(--surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.wishlist-item:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary);
+}
+
+/* Feed-style: квадратные карточки как в Instagram */
+.wishlist-grid.feed-style .wishlist-item {
+    aspect-ratio: 1;
+    position: relative;
+    padding: 0;
+}
+
+.wishlist-grid.feed-style .wishlist-item > div:first-child {
+    position: absolute;
+    inset: 0;
+}
+
+.wishlist-grid.feed-style .wishlist-item-image,
+.wishlist-grid.feed-style .wishlist-item-image-wrap {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.wishlist-grid.feed-style .wishlist-item-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.85));
+    padding: 2rem 0.75rem 0.75rem;
+    color: white;
+}
+
+.wishlist-grid.feed-style .wishlist-item-name {
+    color: white;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.wishlist-grid.feed-style .wishlist-item-price .price-main {
+    color: #fbbf24;
+    font-size: 1.1rem;
+}
+
+.wishlist-grid.feed-style .wishlist-item-price .price-usd {
+    color: rgba(255,255,255,0.8);
+}
+
+.wishlist-item-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    background: var(--bg-tertiary);
+    position: relative;
+}
+
+.wishlist-grid.feed-style .wishlist-item-image {
+    height: 100%;
+    min-height: 100%;
+}
+
+.photo-count-badge {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    backdrop-filter: blur(4px);
+}
+
+.wishlist-item-info {
+    padding: 1.25rem;
+}
+
+.wishlist-item-name {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+}
+
+.wishlist-item-price {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.price-main {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.price-usd {
+    font-size: 0.875rem;
+    color: var(--text-tertiary);
+}
+
+/* Photo Gallery */
+.photo-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.photo-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 2px solid var(--border-color);
+}
+
+.photo-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.photo-remove {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--radius-full);
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    transition: var(--transition);
+    backdrop-filter: blur(4px);
+}
+
+.photo-remove:hover {
+    background: var(--error);
+    transform: scale(1.1);
+}
+
+/* Theme Selector */
+.theme-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.theme-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.theme-option:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.theme-option.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+}
+
+.theme-preview {
+    width: 60px;
+    height: 40px;
+    border-radius: var(--radius);
+    border: 2px solid var(--border-color);
+}
+
+/* Stats Cards */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+    color: white;
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+    text-align: center;
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+/* Tables */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.table thead {
+    background: var(--bg-tertiary);
+}
+
+.table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.table td {
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.table tbody tr {
+    transition: var(--transition);
+}
+
+.table tbody tr:hover {
+    background: var(--bg-secondary);
+}
+
+/* Forms */
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.color-picker-group {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.color-picker-group input[type="color"] {
+    width: 3rem;
+    height: 3rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+/* Language Switcher */
+.language-switcher {
+    display: flex;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.25rem;
+    border-radius: var(--radius);
+    backdrop-filter: blur(10px);
+}
+
+.lang-btn {
+    padding: 0.5rem 1rem;
+    background: transparent;
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.lang-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.lang-btn.active {
+    background: white;
+    color: var(--primary);
+}
+
+/* Additional Utilities */
+.w-full { width: 100%; }
+.text-lg { font-size: 1.125rem; }
+.opacity-90 { opacity: 0.9; }
+.max-w-2xl { max-width: 42rem; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+
+

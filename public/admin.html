@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель - Wishlist Gift</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-top">
+                    <a href="/" class="btn btn-ghost" style="color: white;">← Назад</a>
+                </div>
+                <div class="header-main text-center">
+                    <h1>⚙️ Админ-панель</h1>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tabs -->
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="overview" onclick="showTab('overview')">Обзор</button>
+            <button class="tab-btn" data-tab="models" onclick="showTab('models')">Модели</button>
+            <button class="tab-btn" data-tab="transactions" onclick="showTab('transactions')">Транзакции</button>
+            <button class="tab-btn" data-tab="settings" onclick="showTab('settings')">Настройки</button>
+        </nav>
+
+        <!-- Tab Content -->
+        <main class="main-content">
+            <!-- Overview Tab -->
+            <div id="overview-tab" class="tab-content active">
+                <div class="stats-grid mb-3">
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-value" id="total-models">0</div>
+                        <div class="stat-label">Всего моделей</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🎁</div>
+                        <div class="stat-value" id="total-gifts">0</div>
+                        <div class="stat-label">Всего подарков</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⭐</div>
+                        <div class="stat-value" id="total-stars">0</div>
+                        <div class="stat-label">Общий оборот</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-value" id="total-revenue">0</div>
+                        <div class="stat-label">Доход платформы</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Models Tab -->
+            <div id="models-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Управление моделями</h2>
+                    </div>
+                    <div id="models-list">
+                        <div class="empty-state">
+                            <div class="empty-state-text">Загрузка...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transactions Tab -->
+            <div id="transactions-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Транзакции</h2>
+                    </div>
+                    <div id="transactions-list">
+                        <div class="empty-state">
+                            <div class="empty-state-text">Загрузка...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settings-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Настройки платформы</h2>
+                    </div>
+                    <form id="settings-form">
+                        <div class="form-group">
+                            <label class="form-label">Процент комиссии (%)</label>
+                            <input type="number" id="commission-rate" class="form-input" value="10" step="0.1" min="0" max="100">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-full">💾 Сохранить настройки</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/admin.js"></script>
+</body>
+</html>
+
+

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль - Wishlist Gift</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Top Bar -->
+        <header class="header" style="margin-bottom: 0; border-radius: 12px 12px 0 0;">
+            <div class="header-content" style="flex-direction: row; justify-content: space-between; align-items: center;">
+                <a href="/" class="btn btn-ghost" style="color: white;">← Назад</a>
+                <h1 style="font-size: 1.25rem; margin: 0;">Профиль</h1>
+                <div class="language-switcher">
+                    <button class="lang-btn active" onclick="setLanguage('ru')">RU</button>
+                    <button class="lang-btn" onclick="setLanguage('en')">EN</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Profile Card - просмотр как в соцсети -->
+        <div class="profile-card">
+            <div class="profile-cover" id="model-banner">
+                <img id="model-cover-img" src="" alt="" style="display: none;">
+            </div>
+            <div class="profile-info">
+                <div class="profile-avatar-wrap">
+                    <div class="profile-avatar" id="model-avatar">👩‍💼</div>
+                </div>
+                <div class="profile-meta">
+                    <h2 class="profile-name" id="model-name">Анна</h2>
+                    <div class="profile-username">@wishlist</div>
+                    <p class="profile-bio" id="model-bio">Вебкам-модель, любит красивые вещи 💕</p>
+                </div>
+                <div class="profile-stats">
+                    <div class="profile-stat">
+                        <span class="profile-stat-value" id="stats-items">0</span>
+                        <span class="profile-stat-label">В вишлисте</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="profile-feed" style="margin-bottom: 1rem;">
+            <div style="padding: 1rem;">
+                <div class="form-row">
+                    <input type="text" id="search-items" class="form-input" placeholder="🔍 Поиск...">
+                    <select id="sort-items" class="form-select">
+                        <option value="price-asc">Дешевле</option>
+                        <option value="price-desc">Дороже</option>
+                        <option value="newest">Сначала новые</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wishlist - лента как в соцсети -->
+        <div class="profile-feed">
+            <div class="feed-header">Вишлист</div>
+            <div id="wishlist-items" class="wishlist-grid feed-style">
+                <div class="empty-state" style="grid-column: 1 / -1; padding: 3rem;">
+                    <div class="empty-state-icon">🎁</div>
+                    <div class="empty-state-title">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Item Modal -->
+    <div id="item-modal" class="modal-overlay hidden" onclick="if(event.target === this) closeModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="modal-item-name"></h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <img id="modal-item-image" src="" alt="" style="width: 100%; border-radius: var(--radius); margin-bottom: 1rem;">
+                <p id="modal-item-description" class="text-secondary mb-3"></p>
+                <div class="card mb-3">
+                    <div class="text-center">
+                        <div class="text-lg mb-2">К оплате:</div>
+                        <div class="price-main" id="modal-item-total"></div>
+                    </div>
+                </div>
+                <a id="modal-item-link" href="#" target="_blank" class="btn btn-secondary w-full mb-2">🔗 Посмотреть на сайте</a>
+                <button class="btn btn-primary w-full btn-lg" onclick="initiatePayment()">💫 Подарить</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/i18n.js"></script>
+    <script src="/js/donor.js"></script>
+</body>
+</html>

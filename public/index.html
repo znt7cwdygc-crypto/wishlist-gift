@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Wishlist Gift - Современная платформа для подарков через Telegram Stars">
+    <title>Wishlist Gift - Подарки для моделей</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-top">
+                    <div class="language-switcher">
+                        <button class="lang-btn active" onclick="setLanguage('ru')">RU</button>
+                        <button class="lang-btn" onclick="setLanguage('en')">EN</button>
+                    </div>
+                </div>
+                <div class="header-main text-center">
+                    <h1 class="mb-2">🎁 Wishlist Gift</h1>
+                    <p class="text-lg opacity-90">Современная платформа для подарков через Telegram Stars</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Welcome Section -->
+            <section class="welcome-section mb-3">
+                <h2 class="text-center mb-2">Добро пожаловать!</h2>
+                <p class="text-center text-lg max-w-2xl mx-auto">
+                    Wishlist Gift — это удобный способ получать и дарить подарки через Telegram Stars. 
+                    Создайте свой вишлист или выберите подарок для любимой модели.
+                </p>
+            </section>
+
+            <!-- Role Cards -->
+            <div class="grid grid-3 mb-3">
+                <!-- Model Card -->
+                <div class="role-card card">
+                    <div class="role-icon">👩‍💼</div>
+                    <h3 class="mb-2">Мой вишлист</h3>
+                    <p class="mb-3 text-secondary">Создайте вишлист и получайте подарки</p>
+                    <a href="/cabinet" class="btn btn-primary w-full">Открыть кабинет</a>
+                </div>
+
+                <!-- Donor Card -->
+                <div class="role-card card">
+                    <div class="role-icon">🎁</div>
+                    <h3 class="mb-2">Подарить</h3>
+                    <p class="mb-3 text-secondary">Выберите подарок для любимой модели</p>
+                    <a href="/gift" class="btn btn-primary w-full">Открыть вишлист</a>
+                </div>
+
+                <!-- Admin Card -->
+                <div class="role-card card">
+                    <div class="role-icon">⚙️</div>
+                    <h3 class="mb-2">Админ-панель</h3>
+                    <p class="mb-3 text-secondary">Управление платформой</p>
+                    <a href="/admin" class="btn btn-secondary w-full">Войти как админ</a>
+                </div>
+            </div>
+
+            <!-- How It Works -->
+            <section class="how-it-works">
+                <h2 class="text-center mb-3">Как это работает?</h2>
+                <div class="steps grid grid-3">
+                    <div class="step-card card">
+                        <div class="step-number">1</div>
+                        <h4 class="mb-2">Модель создает вишлист</h4>
+                        <p class="text-secondary">Добавляет товары с фото, описанием и ценой</p>
+                    </div>
+                    <div class="step-card card">
+                        <div class="step-number">2</div>
+                        <h4 class="mb-2">Даритель выбирает подарок</h4>
+                        <p class="text-secondary">Просматривает вишлист и оплачивает через Telegram Stars</p>
+                    </div>
+                    <div class="step-card card">
+                        <div class="step-number">3</div>
+                        <h4 class="mb-2">Модель получает средства</h4>
+                        <p class="text-secondary">Автоматическое зачисление Stars на аккаунт модели</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/i18n.js"></script>
+</body>
+</html>
+
+

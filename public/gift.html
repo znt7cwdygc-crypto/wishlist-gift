@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Вишлист</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>">
+    <link rel="stylesheet" href="/css/app.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="app">
+        <!-- Экран 1: Список подарков -->
+        <div id="screen-list" class="screen active">
+            <header class="app-header">
+                <div class="profile-header">
+                    <div class="profile-avatar" id="model-avatar">👩‍💼</div>
+                    <div class="profile-info">
+                        <div class="profile-name" id="model-name">Загрузка...</div>
+                        <div class="profile-bio" id="model-bio"></div>
+                    </div>
+                </div>
+            </header>
+            
+            <main class="app-content">
+                <div id="gifts-list" class="gifts-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">🎁</div>
+                        <div class="empty-title">Загрузка...</div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Экран 2: Подтверждение -->
+        <div id="screen-confirm" class="screen">
+            <header class="app-header">
+                <button class="btn btn-ghost" onclick="showScreen('list')" style="width: auto; padding: 8px 0;">
+                    ← Назад
+                </button>
+            </header>
+            
+            <main class="app-content">
+                <div class="text-lg mb-3">Вы дарите</div>
+                
+                <div class="confirm-card">
+                    <div class="confirm-item">
+                        <div class="confirm-image" id="confirm-image">🎁</div>
+                        <div class="confirm-details">
+                            <div class="confirm-name" id="confirm-name"></div>
+                            <div class="confirm-price" id="confirm-price"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Добавить сообщение (необязательно)</label>
+                    <textarea id="gift-message" class="message-input" rows="3" placeholder="Напишите что-нибудь приятное..."></textarea>
+                </div>
+                
+                <button class="btn btn-primary btn-lg" onclick="proceedToPayment()">
+                    Перейти к оплате
+                </button>
+                
+                <p class="text-xs text-secondary text-center mt-3">
+                    Оплата через Telegram Stars
+                </p>
+            </main>
+        </div>
+
+        <!-- Экран 3: Готово -->
+        <div id="screen-success" class="screen">
+            <div class="screen-center">
+                <div class="screen-icon">✅</div>
+                <div class="screen-title">Подарок оплачен!</div>
+                <div class="screen-text" id="success-message">Сообщение доставлено</div>
+                
+                <button class="btn btn-primary mb-2" onclick="showScreen('list')">
+                    Вернуться к списку
+                </button>
+                <button class="btn btn-secondary" onclick="shareWishlist()">
+                    Поделиться вишлистом
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/gift.js"></script>
+</body>
+</html>
