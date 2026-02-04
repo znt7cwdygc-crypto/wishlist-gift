@@ -87,19 +87,21 @@ router.post('/telegram-webhook', async (req, res) => {
     res.sendStatus(200);
 
     try {
-        // /start — приветствие и кнопки оплаты Stars
-        if (body.message?.text === '/start') {
+        // /start — приветствие и кнопки оплаты Stars (текст может быть /start или /start payload)
+        if (body.message?.text?.startsWith('/start')) {
             const chatId = body.message.chat.id;
+            console.log('[Webhook] /start from chat', chatId);
             const keyboard = {
                 inline_keyboard: [
                     STAR_AMOUNTS.map(a => ({ text: `⭐ ${a}`, callback_data: `stars_${a}` }))
                 ]
             };
-            await telegramApi('sendMessage', {
+            const sendRes = await telegramApi('sendMessage', {
                 chat_id: chatId,
                 text: '⭐ Отправить Telegram Stars\n\nВыберите сумму:',
                 reply_markup: JSON.stringify(keyboard)
             });
+            if (!sendRes.ok) console.error('[Webhook] sendMessage failed:', sendRes);
         }
 
         // callback_query — нажатие кнопки (stars_50, stars_100, ...)
