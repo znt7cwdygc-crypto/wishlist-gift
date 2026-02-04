@@ -12,20 +12,18 @@
 
 Environment → `BOT_TOKEN` = токен от @BotFather
 
-### 2. Webhook на боте
+### 2. Webhook на боте (обязательно)
 
-Telegram должен слать события (pre_checkout, successful_payment) на ваш сервер.
+Без webhook оплата будет зависать. Telegram присылает pre_checkout_query и successful_payment на ваш сервер.
 
-Выполните (подставьте свои значения):
+1. Откройте в браузере (подставьте свой BOT_TOKEN):
+   ```
+   https://api.telegram.org/bot<BOT_TOKEN>/setWebhook?url=https://wishlist-gift.onrender.com/api/payments/telegram-webhook
+   ```
 
-```bash
-curl "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook?url=https://wishlist-gift.onrender.com/api/payments/telegram-webhook"
-```
+2. Должен вернуться `{"ok":true,"result":true}`
 
-Или через браузер:
-```
-https://api.telegram.org/bot<BOT_TOKEN>/setWebhook?url=https://wishlist-gift.onrender.com/api/payments/telegram-webhook
-```
+3. Проверка: откройте https://wishlist-gift.onrender.com/stars → «Проверить настройки»
 
 ### 3. Menu Button в боте
 

@@ -84,4 +84,25 @@ async function sendStars() {
     }
 }
 
+async function checkStatus() {
+    const hint = document.getElementById('hint');
+    hint.textContent = 'Проверяю...';
+    try {
+        const r = await fetch('/api/stars/status');
+        const d = await r.json();
+        let msg = '';
+        if (!d.bot_token_set) msg = 'BOT_TOKEN не настроен на сервере';
+        else if (!d.webhook_ok) {
+            msg = 'Webhook не настроен! Откройте в браузере: ' + (d.expected_webhook || '').replace('https://', '');
+            if (d.set_webhook_cmd) {
+                const url = d.set_webhook_cmd.replace('<TOKEN>', 'ВАШ_ТОКЕН');
+                if (tg?.showAlert) tg.showAlert('Установите webhook. См. STARS_SETUP.md');
+            }
+        } else msg = 'Всё настроено ✓';
+        hint.textContent = msg;
+    } catch (e) {
+        hint.textContent = 'Ошибка проверки: ' + e.message;
+    }
+}
+
 init();

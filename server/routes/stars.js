@@ -67,4 +67,34 @@ router.post('/send', async (req, res) => {
     }
 });
 
+// Диагностика: проверка настроек
+router.get('/status', async (req, res) => {
+    try {
+        const hasToken = !!BOT_TOKEN;
+        let webhookUrl = null;
+        let webhookOk = false;
+
+        if (BOT_TOKEN) {
+            const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo`);
+            const info = await r.json();
+            if (info.ok && info.result?.url) {
+                webhookUrl = info.result.url;
+                const expected = (process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
+                webhookOk = webhookUrl === `${expected}/api/payments/telegram-webhook`;
+            }
+        }
+
+        const appUrl = process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || 'https://wishlist-gift.onrender.com';
+        res.json({
+            bot_token_set: hasToken,
+            webhook_url: webhookUrl,
+            webhook_ok: webhookOk,
+            expected_webhook: `${appUrl}/api/payments/telegram-webhook`,
+            set_webhook_cmd: `https://api.telegram.org/bot<TOKEN>/setWebhook?url=${encodeURIComponent(appUrl + '/api/payments/telegram-webhook')}`
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 module.exports = router;
