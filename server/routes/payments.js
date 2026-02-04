@@ -44,6 +44,7 @@ router.post('/invoice', async (req, res) => {
         const payload = `order:${orderId}`;
         const result = await telegramApi('sendInvoice', {
             chat_id: order.donor_telegram_id,
+            provider_token: '',
             title: title || 'Подарок',
             description: 'Оплата через Telegram Stars',
             payload,

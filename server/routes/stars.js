@@ -17,6 +17,7 @@ async function sendInvoice(chatId, amount, payload, title = 'Stars') {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             chat_id: chatId,
+            provider_token: '',
             title: title,
             description: 'Оплата через Telegram Stars',
             payload: payload,
