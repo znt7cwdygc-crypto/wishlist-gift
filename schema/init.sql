@@ -103,6 +103,19 @@ CREATE TABLE IF NOT EXISTS invite_tokens (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Простые донаты Stars (без вишлиста)
+CREATE TABLE IF NOT EXISTS donations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payload VARCHAR(255) UNIQUE NOT NULL,
+    amount_xtr INTEGER NOT NULL,
+    donor_telegram_id BIGINT NOT NULL,
+    donor_username VARCHAR(255),
+    status VARCHAR(20) DEFAULT 'pending',
+    telegram_payment_charge_id VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    paid_at TIMESTAMP
+);
+
 -- Баланс
 CREATE TABLE IF NOT EXISTS model_balances (
     model_id INTEGER PRIMARY KEY REFERENCES users(id),

@@ -1,96 +1,129 @@
 /**
- * Платежи Stars: создание Invoice, webhook pre_checkout / successful_payment
- * MVP: заглушки. В проде — интеграция с Telegram Bot API.
+ * Telegram Stars: sendInvoice, webhook pre_checkout / successful_payment
  */
 
 const express = require('express');
 const router = express.Router();
+const db = require('../db');
 
 let ordersRouter = null;
 router.setOrdersRouter = (r) => { ordersRouter = r; };
 
-// Создать Invoice (бот отправит в чат)
+const BOT_TOKEN = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+
+async function telegramApi(method, body) {
+    if (!BOT_TOKEN) return { ok: false };
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    return res.json();
+}
+
+// Создать Invoice для заказа (вишлист)
 router.post('/invoice', async (req, res) => {
     try {
         const { item_id: itemId, order_id: orderId, amount_xtr: amountXtr, title } = req.body;
-        
+
         if (!itemId || !orderId || !amountXtr) {
             return res.status(400).json({ error: 'item_id, order_id, amount_xtr обязательны' });
         }
-        
-        // TODO: вызвать bot.sendInvoice() с currency: 'XTR'
-        // invoice_payload должен содержать order_id для матчинга при pre_checkout
-        res.json({
-            success: true,
-            order_id: orderId,
-            invoice_payload: `order:${orderId}`,
-            amount_xtr: parseInt(amountXtr),
-            message: 'Бот отправит Invoice в чат (интеграция с Telegram Bot API)'
+
+        const order = ordersRouter?.findOrderByPayload
+            ? await ordersRouter.findOrderByPayload(`order:${orderId}`)
+            : null;
+        if (!order) {
+            return res.status(404).json({ error: 'Заказ не найден' });
+        }
+
+        if (!BOT_TOKEN) {
+            return res.status(503).json({ error: 'BOT_TOKEN не настроен' });
+        }
+
+        const payload = `order:${orderId}`;
+        const result = await telegramApi('sendInvoice', {
+            chat_id: order.donor_telegram_id,
+            title: title || 'Подарок',
+            description: 'Оплата через Telegram Stars',
+            payload,
+            currency: 'XTR',
+            prices: [{ label: 'Stars', amount: parseInt(amountXtr) }]
         });
+
+        if (!result.ok) {
+            return res.status(500).json({ error: result.description || 'Ошибка Telegram' });
+        }
+
+        res.json({ success: true, order_id: orderId, amount_xtr: parseInt(amountXtr) });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
 
-// Telegram webhook: pre_checkout_query + successful_payment
+// Webhook от Telegram (setWebhook на боте → этот URL)
 router.post('/telegram-webhook', async (req, res) => {
+    res.sendStatus(200);
+
     try {
         const body = req.body;
-        res.sendStatus(200); // всегда 200, чтобы Telegram не ретраил
-        
-        // pre_checkout_query
+
         if (body.pre_checkout_query) {
             const pq = body.pre_checkout_query;
             const payload = pq.invoice_payload;
-            const amount = pq.total_amount; // в минимальных единицах XTR (1 Star = 1)
-            
-            if (!ordersRouter?.findOrderByPayload) return;
-            const order = await ordersRouter.findOrderByPayload(payload);
-            if (!order) {
-                // TODO: bot.answerPreCheckoutQuery(pq.id, ok: false, error_message: 'Заказ не найден')
-                return;
+            const amount = pq.total_amount;
+
+            let ok = false;
+            let errorMsg = 'Ошибка';
+
+            if (payload.startsWith('donate:')) {
+                const r = await db.query(
+                    'SELECT id, amount_xtr, status FROM donations WHERE payload = $1',
+                    [payload]
+                );
+                const d = r.rows[0];
+                if (d && d.status === 'pending' && d.amount_xtr === amount) {
+                    ok = true;
+                } else if (!d) errorMsg = 'Донат не найден';
+                else if (d.status !== 'pending') errorMsg = 'Уже оплачено';
+            } else if (payload.startsWith('order:') && ordersRouter?.findOrderByPayload) {
+                const order = await ordersRouter.findOrderByPayload(payload);
+                if (order && order.status === 'reserved' && order.amount_xtr === amount) {
+                    ok = true;
+                } else if (!order) errorMsg = 'Заказ не найден';
+                else if (order.status !== 'reserved') errorMsg = 'Позиция уже занята';
             }
-            if (order.status !== 'reserved') {
-                // TODO: bot.answerPreCheckoutQuery(pq.id, ok: false, error_message: 'Позиция уже занята')
-                return;
-            }
-            if (amount !== order.amount_xtr) {
-                // TODO: bot.answerPreCheckoutQuery(pq.id, ok: false, error_message: 'Сумма изменилась')
-                return;
-            }
-            // TODO: bot.answerPreCheckoutQuery(pq.id, ok: true)
+
+            await telegramApi('answerPreCheckoutQuery', {
+                pre_checkout_query_id: pq.id,
+                ok,
+                error_message: ok ? undefined : errorMsg
+            });
         }
-        
-        // successful_payment
+
         if (body.message?.successful_payment) {
             const sp = body.message.successful_payment;
             const payload = sp.invoice_payload;
             const chargeId = sp.telegram_payment_charge_id;
-            
-            if (!ordersRouter?.findOrderByPayload || !ordersRouter?.markOrderPaid) return;
-            const order = await ordersRouter.findOrderByPayload(payload);
-            if (!order) return;
-            
-            await ordersRouter.markOrderPaid(order.id, chargeId);
-            // TODO: уведомить владельца, обновить model_balances
+
+            if (payload.startsWith('donate:')) {
+                await db.query(
+                    `UPDATE donations SET status = 'paid', telegram_payment_charge_id = $2, paid_at = CURRENT_TIMESTAMP
+                     WHERE payload = $1 AND status = 'pending'`,
+                    [payload, chargeId]
+                );
+            } else if (payload.startsWith('order:') && ordersRouter?.markOrderPaid) {
+                const order = await ordersRouter.findOrderByPayload(payload);
+                if (order) await ordersRouter.markOrderPaid(order.id, chargeId);
+            }
         }
     } catch (e) {
-        console.error('Payments webhook error:', e);
+        console.error('Webhook error:', e);
     }
 });
 
-// Legacy
-router.post('/initiate', async (req, res) => {
-    try {
-        const { itemId } = req.body;
-        res.json({
-            success: true,
-            invoiceUrl: 'https://t.me/invoice/test',
-            message: 'Используйте POST /invoice с order_id'
-        });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
+router.post('/initiate', (req, res) => {
+    res.json({ success: true, message: 'Используйте POST /invoice или /api/stars/send' });
 });
 
 module.exports = router;

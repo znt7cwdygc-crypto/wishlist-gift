@@ -64,7 +64,7 @@ router.get('/by-slug/:slug', async (req, res) => {
         // Находим model_id по slug
         const profileResult = await db.query(
             'SELECT user_id FROM model_profiles WHERE public_slug = $1 OR public_link = $1',
-            [slug, slug]
+            [slug]
         );
         const modelId = profileResult.rows[0]?.user_id || 1;
         

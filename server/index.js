@@ -36,6 +36,7 @@ app.use('/api/orders', ordersRouter);
 const paymentsRouter = require('./routes/payments');
 paymentsRouter.setOrdersRouter(ordersRouter);
 app.use('/api/payments', paymentsRouter);
+app.use('/api/stars', require('./routes/stars'));
 app.use('/api/admin', require('./routes/admin'));
 
 // Frontend Routes
@@ -54,6 +55,10 @@ app.get('/gift/:slug?', (req, res) => {
 
 app.get('/cabinet', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/cabinet.html'));
+});
+
+app.get('/stars', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/stars.html'));
 });
 
 // Legacy pages
