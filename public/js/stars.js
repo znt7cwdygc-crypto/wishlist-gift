@@ -76,8 +76,9 @@ async function sendStars() {
             return;
         }
 
-        hint.textContent = 'Счёт отправлен! Проверьте чат выше и нажмите Pay.';
-        if (tg?.showAlert) tg.showAlert('Счёт в чате. Нажмите Pay в сообщении.');
+        hint.textContent = 'Счёт в чате! Закрываю приложение...';
+        if (tg?.showAlert) tg.showAlert('Счёт отправлен. Нажмите Pay в сообщении от бота.');
+        if (tg?.close) setTimeout(() => tg.close(), 1500);
     } catch (e) {
         hint.textContent = 'Ошибка: ' + (e.message || 'проверьте интернет');
         sendBtn.disabled = false;

@@ -110,9 +110,14 @@ router.post('/telegram-webhook', async (req, res) => {
         }
 
         if (body.message?.successful_payment) {
-            const sp = body.message.successful_payment;
+            const msg = body.message;
+            const sp = msg.successful_payment;
             const payload = sp.invoice_payload;
             const chargeId = sp.telegram_payment_charge_id;
+            const chatId = msg.chat?.id;
+            const amount = sp.total_amount || 0;
+            const fromUser = msg.from;
+            const username = fromUser?.username ? `@${fromUser.username}` : (fromUser?.first_name || 'Пользователь');
 
             if (payload.startsWith('donate:')) {
                 await db.query(
@@ -120,9 +125,30 @@ router.post('/telegram-webhook', async (req, res) => {
                      WHERE payload = $1 AND status = 'pending'`,
                     [payload, chargeId]
                 );
+                if (chatId) {
+                    await telegramApi('sendMessage', {
+                        chat_id: chatId,
+                        text: `✅ Спасибо! Оплата ${amount} Stars получена.`
+                    });
+                }
+                const adminChatId = process.env.ADMIN_CHAT_ID;
+                if (adminChatId) {
+                    await telegramApi('sendMessage', {
+                        chat_id: adminChatId,
+                        text: `💰 Донат: ${amount} Stars от ${username} (id: ${fromUser?.id || '-'})`
+                    });
+                }
             } else if (payload.startsWith('order:') && ordersRouter?.markOrderPaid) {
                 const order = await ordersRouter.findOrderByPayload(payload);
-                if (order) await ordersRouter.markOrderPaid(order.id, chargeId);
+                if (order) {
+                    await ordersRouter.markOrderPaid(order.id, chargeId);
+                    if (chatId) {
+                        await telegramApi('sendMessage', {
+                            chat_id: chatId,
+                            text: `✅ Подарок оплачен! ${amount} Stars.`
+                        });
+                    }
+                }
             }
         }
     } catch (e) {
