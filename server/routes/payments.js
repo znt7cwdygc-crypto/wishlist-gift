@@ -1,8 +1,9 @@
 /**
- * Telegram Stars: sendInvoice, webhook pre_checkout / successful_payment
+ * Telegram Bot + Stars: /start с кнопками, callback → invoice, pre_checkout, successful_payment
  */
 
 const express = require('express');
+const { randomUUID } = require('crypto');
 const router = express.Router();
 const db = require('../db');
 
@@ -11,6 +12,7 @@ router.setOrdersRouter = (r) => { ordersRouter = r; };
 
 const BOT_TOKEN = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const FAST_PRECHECKOUT = process.env.FAST_PRECHECKOUT === 'true';
+const STAR_AMOUNTS = [50, 100, 250, 500, 1000];
 
 async function telegramApi(method, body) {
     if (!BOT_TOKEN) return { ok: false };
@@ -76,12 +78,69 @@ function withTimeout(promise, ms, fallback) {
 
 router.post('/telegram-webhook', async (req, res) => {
     const body = req.body;
-    const updateType = body.pre_checkout_query ? 'pre_checkout_query' : (body.message?.successful_payment ? 'successful_payment' : 'other');
-    console.log('[Webhook]', updateType, body.pre_checkout_query?.id || body.update_id);
+    const updateType = body.pre_checkout_query ? 'pre_checkout_query'
+        : (body.message?.successful_payment ? 'successful_payment' : 'other');
+    if (body.message || body.callback_query) {
+        console.log('[Webhook]', body.callback_query ? 'callback_query' : 'message', body.update_id);
+    }
 
     res.sendStatus(200);
 
     try {
+        // /start — приветствие и кнопки оплаты Stars
+        if (body.message?.text === '/start') {
+            const chatId = body.message.chat.id;
+            const keyboard = {
+                inline_keyboard: [
+                    STAR_AMOUNTS.map(a => ({ text: `⭐ ${a}`, callback_data: `stars_${a}` }))
+                ]
+            };
+            await telegramApi('sendMessage', {
+                chat_id: chatId,
+                text: '⭐ Отправить Telegram Stars\n\nВыберите сумму:',
+                reply_markup: JSON.stringify(keyboard)
+            });
+        }
+
+        // callback_query — нажатие кнопки (stars_50, stars_100, ...)
+        if (body.callback_query) {
+            const cq = body.callback_query;
+            const data = cq.data || '';
+            const chatId = cq.message?.chat?.id;
+            const userId = cq.from?.id;
+            const username = cq.from?.username;
+
+            await telegramApi('answerCallbackQuery', { callback_query_id: cq.id });
+
+            if (data.startsWith('stars_')) {
+                const amount = parseInt(data.replace('stars_', ''), 10) || 100;
+                if (amount < 1) return;
+
+                const payload = `donate:${randomUUID()}`;
+                await db.query(
+                    `INSERT INTO donations (payload, amount_xtr, donor_telegram_id, donor_username, status)
+                     VALUES ($1, $2, $3, $4, 'pending')`,
+                    [payload, amount, userId, username || null]
+                );
+
+                const inv = await telegramApi('sendInvoice', {
+                    chat_id: chatId,
+                    provider_token: '',
+                    title: 'Stars',
+                    description: 'Оплата через Telegram Stars',
+                    payload,
+                    currency: 'XTR',
+                    prices: [{ label: 'Stars', amount }]
+                });
+                if (!inv.ok) {
+                    await telegramApi('sendMessage', {
+                        chat_id: chatId,
+                        text: `Ошибка: ${inv.description || 'не удалось создать счёт'}`
+                    });
+                }
+            }
+        }
+
         if (body.pre_checkout_query) {
             const pq = body.pre_checkout_query;
             const payload = pq.invoice_payload || '';
