@@ -46,6 +46,22 @@
             color: #fff;
         }
         .amount-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .custom-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+        .custom-row input {
+            width: 100px;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 2px solid #0088cc;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .custom-row span { color: #666; font-size: 14px; }
         .send-btn {
             width: 100%;
             padding: 16px;
@@ -70,6 +86,10 @@
         <h1>⭐ Отправить Stars</h1>
         <p>Поддержите нас Telegram Stars</p>
         <div class="amounts" id="amounts"></div>
+        <div class="custom-row">
+            <input type="number" id="custom-amount" placeholder="Своя сумма" min="1" inputmode="numeric">
+            <span>⭐</span>
+        </div>
         <button class="send-btn" id="send-btn" disabled>Выберите сумму</button>
         <p class="hint" id="hint">Оплата через Telegram Stars</p>
     </div>

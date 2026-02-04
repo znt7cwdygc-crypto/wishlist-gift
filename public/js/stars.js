@@ -18,20 +18,33 @@ function init() {
     ).join('');
 
     container.querySelectorAll('.amount-btn').forEach(btn => {
-        btn.onclick = () => selectAmount(parseInt(btn.dataset.amount));
+        btn.onclick = () => selectPreset(parseInt(btn.dataset.amount));
+    });
+
+    const customInput = document.getElementById('custom-amount');
+    customInput.addEventListener('input', () => {
+        document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('active'));
+        const val = parseInt(customInput.value) || 0;
+        selectedAmount = val >= 1 ? val : 0;
+        updateSendBtn();
     });
 
     document.getElementById('send-btn').onclick = sendStars;
 }
 
-function selectAmount(amount) {
+function selectPreset(amount) {
     selectedAmount = amount;
+    document.getElementById('custom-amount').value = '';
     document.querySelectorAll('.amount-btn').forEach(b => {
         b.classList.toggle('active', parseInt(b.dataset.amount) === amount);
     });
+    updateSendBtn();
+}
+
+function updateSendBtn() {
     const sendBtn = document.getElementById('send-btn');
-    sendBtn.disabled = false;
-    sendBtn.textContent = `Отправить ⭐ ${amount}`;
+    sendBtn.disabled = selectedAmount < 1;
+    sendBtn.textContent = selectedAmount >= 1 ? `Отправить ⭐ ${selectedAmount}` : 'Выберите сумму';
 }
 
 async function sendStars() {
