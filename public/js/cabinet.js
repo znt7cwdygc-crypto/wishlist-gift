@@ -425,7 +425,7 @@ function renderInvites() {
 async function copyLink() {
     try {
         const profile = await apiRequest('/models/me').catch(() => null);
-        const cfg = await fetch('/api/config').then(r => r.json());
+        const cfg = await fetch((window.API_BASE_URL || '/api') + '/config').then(r => r.json());
         const bot = cfg.botUsername || 'WishlistGiftBot';
         const slug = profile?.profile?.publicSlug || profile?.profile?.publicLink || 'me';
         const link = `https://t.me/${bot}?start=${slug}`;
@@ -443,7 +443,7 @@ async function copyLink() {
 async function loadShareLink() {
     try {
         const [cfg, profile] = await Promise.all([
-            fetch('/api/config').then(r => r.json()),
+            fetch((window.API_BASE_URL || '/api') + '/config').then(r => r.json()),
             apiRequest('/models/me').catch(() => null)
         ]);
         const bot = cfg.botUsername || 'WishlistGiftBot';
@@ -513,7 +513,7 @@ async function initAuth() {
     }
 
     try {
-        const res = await fetch('/api/auth/telegram', {
+        const res = await fetch((window.API_BASE_URL || '/api') + '/auth/telegram', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ initData: tg.initData })

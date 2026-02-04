@@ -170,7 +170,7 @@ function showSuccessScreen(message) {
 async function shareWishlist() {
     let link = 'https://t.me/WishlistGiftBot?start=me';
     try {
-        const cfg = await fetch('/api/config').then(r => r.json());
+        const cfg = await fetch((window.API_BASE_URL || '/api') + '/config').then(r => r.json());
         if (cfg.shareLink) link = cfg.shareLink;
     } catch (_) {}
     
@@ -200,7 +200,7 @@ async function ensureAuth() {
     if (!tg?.initData) return;
     if (localStorage.getItem('token')) return;
     try {
-        const res = await fetch('/api/auth/telegram', {
+        const res = await fetch((window.API_BASE_URL || '/api') + '/auth/telegram', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ initData: tg.initData })

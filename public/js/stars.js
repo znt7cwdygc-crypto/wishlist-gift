@@ -60,7 +60,8 @@ async function sendStars() {
     }
 
     try {
-        const res = await fetch('/api/stars/send', {
+        const apiBase = window.API_BASE_URL || '/api';
+        const res = await fetch(apiBase + '/stars/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -89,7 +90,7 @@ async function checkStatus() {
     const hint = document.getElementById('hint');
     hint.textContent = 'Проверяю...';
     try {
-        const r = await fetch('/api/stars/status');
+        const r = await fetch((window.API_BASE_URL || '/api') + '/stars/status');
         const d = await r.json();
         let msg = '';
         if (!d.bot_token_set) msg = 'BOT_TOKEN не настроен на сервере';

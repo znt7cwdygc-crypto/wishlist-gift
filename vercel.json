@@ -1,0 +1,25 @@
+{
+  "buildCommand": "node scripts/build-vercel.js",
+  "outputDirectory": "public",
+  "framework": null,
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/gift", "destination": "/gift.html" },
+    { "source": "/gift/:path*", "destination": "/gift.html" },
+    { "source": "/cabinet", "destination": "/cabinet.html" },
+    { "source": "/stars", "destination": "/stars.html" },
+    { "source": "/model", "destination": "/model.html" },
+    { "source": "/donor", "destination": "/donor.html" },
+    { "source": "/donor/:path*", "destination": "/donor.html" },
+    { "source": "/admin", "destination": "/admin.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" }
+      ]
+    }
+  ]
+}

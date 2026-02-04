@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node scripts/start.js",
     "dev": "nodemon server/index.js",
-    "build": "echo 'Build OK'",
+    "build": "node scripts/build-vercel.js",
     "migrate": "node scripts/init-db.js"
   },
   "keywords": [

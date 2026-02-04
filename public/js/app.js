@@ -1,5 +1,5 @@
-// Main Application JavaScript
-const API_BASE_URL = '/api';
+// Main Application JavaScript — API_BASE_URL задаётся в config.js (для Vercel подставляется при сборке)
+const API_BASE_URL = (typeof window !== 'undefined' && window.API_BASE_URL) ? window.API_BASE_URL : '/api';
 
 // API Helper Functions
 async function apiRequest(endpoint, options = {}) {
