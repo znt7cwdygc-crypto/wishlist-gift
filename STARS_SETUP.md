@@ -39,14 +39,19 @@ Environment → `BOT_TOKEN` = токен от @BotFather
 
 Донаты сохраняются в таблице `donations`.
 
-## Если окно оплаты зависает и пропадает
+## Если окно оплаты зависает (BOT_PRECHECKOUT_TIMEOUT)
 
-Частая причина — **cold start** на Render (бесплатный план): сервер «засыпает» через 15 мин, первый запрос занимает 30–60 сек. Telegram не ждёт так долго и закрывает окно.
+Telegram ждёт `answerPreCheckoutQuery` максимум **10 секунд**.
 
-**Что сделать:**
-1. **UptimeRobot** (uptimerobot.com) — бесплатный мониторинг:
-   - Добавьте монитор HTTP(s) → URL: `https://wishlist-gift.onrender.com/`
-   - Интервал: 5 минут
-   - Сервер будет регулярно «прогреваться»
+**Что сделано в коде:**
+- Логирование: `[Webhook] pre_checkout_query`, `[pre_checkout] answer OK 150ms`
+- Таймаут БД: 8 сек — при медленной БД отвечаем «Попробуйте через минуту»
+- `FAST_PRECHECKOUT=true` — для отладки: пропуск БД, сразу ok=true (только для теста!)
 
-2. **cron-job.org** — каждые 10 минут вызывать ваш URL.
+**Диагностика в Render Logs:**
+1. Нажмите Pay → смотрите логи
+2. Нет `[Webhook] pre_checkout_query` → webhook не доходит (проверьте setWebhook)
+3. Есть `[pre_checkout]` но долго → БД медленная или cold start
+
+**Cold start:**
+- **UptimeRobot** (uptimerobot.com) → монитор `https://wishlist-gift.onrender.com/` каждые 5 мин

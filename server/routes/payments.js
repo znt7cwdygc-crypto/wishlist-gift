@@ -10,6 +10,7 @@ let ordersRouter = null;
 router.setOrdersRouter = (r) => { ordersRouter = r; };
 
 const BOT_TOKEN = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+const FAST_PRECHECKOUT = process.env.FAST_PRECHECKOUT === 'true';
 
 async function telegramApi(method, body) {
     if (!BOT_TOKEN) return { ok: false };
@@ -63,9 +64,21 @@ router.post('/invoice', async (req, res) => {
 });
 
 // Webhook от Telegram (setWebhook на боте → этот URL)
-// Важно: answerPreCheckoutQuery нужно вызвать в течение 10 сек
+// КРИТИЧНО: answerPreCheckoutQuery — в течение 10 сек, иначе BOT_PRECHECKOUT_TIMEOUT
+const PRECHECKOUT_TIMEOUT_MS = 8000;
+
+function withTimeout(promise, ms, fallback) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+    ]).catch(e => { if (e.message === 'timeout') return fallback; throw e; });
+}
+
 router.post('/telegram-webhook', async (req, res) => {
     const body = req.body;
+    const updateType = body.pre_checkout_query ? 'pre_checkout_query' : (body.message?.successful_payment ? 'successful_payment' : 'other');
+    console.log('[Webhook]', updateType, body.pre_checkout_query?.id || body.update_id);
+
     res.sendStatus(200);
 
     try {
@@ -73,30 +86,43 @@ router.post('/telegram-webhook', async (req, res) => {
             const pq = body.pre_checkout_query;
             const payload = pq.invoice_payload || '';
             const amount = parseInt(pq.total_amount, 10) || 0;
+            const t0 = Date.now();
+            console.log('[pre_checkout]', { id: pq.id, payload: payload.slice(0, 30), amount, currency: pq.currency });
 
             let ok = false;
             let errorMsg = 'Ошибка';
 
-            if (payload.startsWith('donate:')) {
-                const r = await db.query(
-                    'SELECT id, amount_xtr, status FROM donations WHERE payload = $1',
-                    [payload]
-                );
-                const d = r.rows[0];
-                const dbAmount = parseInt(d?.amount_xtr, 10) || 0;
-                if (d && d.status === 'pending' && dbAmount === amount) {
-                    ok = true;
-                } else if (!d) errorMsg = 'Донат не найден';
-                else if (d.status !== 'pending') errorMsg = 'Уже оплачено';
-                else if (dbAmount !== amount) errorMsg = 'Сумма не совпадает';
-            } else if (payload.startsWith('order:') && ordersRouter?.findOrderByPayload) {
-                const order = await ordersRouter.findOrderByPayload(payload);
-                const orderAmount = parseInt(order?.amount_xtr, 10) || 0;
-                if (order && order.status === 'reserved' && orderAmount === amount) {
-                    ok = true;
-                } else if (!order) errorMsg = 'Заказ не найден';
-                else if (order.status !== 'reserved') errorMsg = 'Позиция уже занята';
-                else if (orderAmount !== amount) errorMsg = 'Сумма не совпадает';
+            if (FAST_PRECHECKOUT && payload.startsWith('donate:')) {
+                ok = true;
+                console.log('[pre_checkout] FAST mode — skip DB');
+            } else try {
+                if (payload.startsWith('donate:')) {
+                    const r = await withTimeout(
+                        db.query('SELECT id, amount_xtr, status FROM donations WHERE payload = $1', [payload]),
+                        PRECHECKOUT_TIMEOUT_MS,
+                        { rows: [] }
+                    );
+                    const d = r.rows?.[0];
+                    const dbAmount = parseInt(d?.amount_xtr, 10) || 0;
+                    if (d && d.status === 'pending' && dbAmount === amount) ok = true;
+                    else if (!d) errorMsg = 'Донат не найден';
+                    else if (d.status !== 'pending') errorMsg = 'Уже оплачено';
+                    else if (dbAmount !== amount) errorMsg = 'Сумма не совпадает';
+                } else if (payload.startsWith('order:') && ordersRouter?.findOrderByPayload) {
+                    const order = await withTimeout(
+                        ordersRouter.findOrderByPayload(payload),
+                        PRECHECKOUT_TIMEOUT_MS,
+                        null
+                    );
+                    const orderAmount = parseInt(order?.amount_xtr, 10) || 0;
+                    if (order && order.status === 'reserved' && orderAmount === amount) ok = true;
+                    else if (!order) errorMsg = 'Заказ не найден';
+                    else if (order.status !== 'reserved') errorMsg = 'Позиция уже занята';
+                    else if (orderAmount !== amount) errorMsg = 'Сумма не совпадает';
+                } else errorMsg = 'Неизвестный payload';
+            } catch (dbErr) {
+                console.error('[pre_checkout] DB/timeout error:', dbErr.message);
+                errorMsg = 'Попробуйте через минуту';
             }
 
             const answerRes = await telegramApi('answerPreCheckoutQuery', {
@@ -104,9 +130,9 @@ router.post('/telegram-webhook', async (req, res) => {
                 ok,
                 error_message: ok ? undefined : errorMsg
             });
-            if (!answerRes.ok) {
-                console.error('answerPreCheckoutQuery failed:', answerRes);
-            }
+            const elapsed = Date.now() - t0;
+            console.log('[pre_checkout] answer', ok ? 'OK' : 'REJECT', `${elapsed}ms`, answerRes.ok ? '' : answerRes);
+            if (!answerRes.ok) console.error('answerPreCheckoutQuery failed:', answerRes);
         }
 
         if (body.message?.successful_payment) {
