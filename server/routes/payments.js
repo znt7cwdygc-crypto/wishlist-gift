@@ -62,16 +62,16 @@ router.post('/invoice', async (req, res) => {
 });
 
 // Webhook от Telegram (setWebhook на боте → этот URL)
+// Важно: answerPreCheckoutQuery нужно вызвать в течение 10 сек
 router.post('/telegram-webhook', async (req, res) => {
+    const body = req.body;
     res.sendStatus(200);
 
     try {
-        const body = req.body;
-
         if (body.pre_checkout_query) {
             const pq = body.pre_checkout_query;
-            const payload = pq.invoice_payload;
-            const amount = pq.total_amount;
+            const payload = pq.invoice_payload || '';
+            const amount = parseInt(pq.total_amount, 10) || 0;
 
             let ok = false;
             let errorMsg = 'Ошибка';
@@ -82,23 +82,30 @@ router.post('/telegram-webhook', async (req, res) => {
                     [payload]
                 );
                 const d = r.rows[0];
-                if (d && d.status === 'pending' && d.amount_xtr === amount) {
+                const dbAmount = parseInt(d?.amount_xtr, 10) || 0;
+                if (d && d.status === 'pending' && dbAmount === amount) {
                     ok = true;
                 } else if (!d) errorMsg = 'Донат не найден';
                 else if (d.status !== 'pending') errorMsg = 'Уже оплачено';
+                else if (dbAmount !== amount) errorMsg = 'Сумма не совпадает';
             } else if (payload.startsWith('order:') && ordersRouter?.findOrderByPayload) {
                 const order = await ordersRouter.findOrderByPayload(payload);
-                if (order && order.status === 'reserved' && order.amount_xtr === amount) {
+                const orderAmount = parseInt(order?.amount_xtr, 10) || 0;
+                if (order && order.status === 'reserved' && orderAmount === amount) {
                     ok = true;
                 } else if (!order) errorMsg = 'Заказ не найден';
                 else if (order.status !== 'reserved') errorMsg = 'Позиция уже занята';
+                else if (orderAmount !== amount) errorMsg = 'Сумма не совпадает';
             }
 
-            await telegramApi('answerPreCheckoutQuery', {
+            const answerRes = await telegramApi('answerPreCheckoutQuery', {
                 pre_checkout_query_id: pq.id,
                 ok,
                 error_message: ok ? undefined : errorMsg
             });
+            if (!answerRes.ok) {
+                console.error('answerPreCheckoutQuery failed:', answerRes);
+            }
         }
 
         if (body.message?.successful_payment) {
@@ -119,6 +126,17 @@ router.post('/telegram-webhook', async (req, res) => {
         }
     } catch (e) {
         console.error('Webhook error:', e);
+        if (body?.pre_checkout_query?.id && BOT_TOKEN) {
+            try {
+                await telegramApi('answerPreCheckoutQuery', {
+                    pre_checkout_query_id: body.pre_checkout_query.id,
+                    ok: false,
+                    error_message: 'Временная ошибка, попробуйте позже'
+                });
+            } catch (e2) {
+                console.error('answerPreCheckoutQuery fallback error:', e2);
+            }
+        }
     }
 });
 

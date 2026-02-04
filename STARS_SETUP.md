@@ -40,3 +40,15 @@ https://api.telegram.org/bot<BOT_TOKEN>/setWebhook?url=https://wishlist-gift.onr
 5. Оплата → webhook → статус «paid» в БД
 
 Донаты сохраняются в таблице `donations`.
+
+## Если окно оплаты зависает и пропадает
+
+Частая причина — **cold start** на Render (бесплатный план): сервер «засыпает» через 15 мин, первый запрос занимает 30–60 сек. Telegram не ждёт так долго и закрывает окно.
+
+**Что сделать:**
+1. **UptimeRobot** (uptimerobot.com) — бесплатный мониторинг:
+   - Добавьте монитор HTTP(s) → URL: `https://wishlist-gift.onrender.com/`
+   - Интервал: 5 минут
+   - Сервер будет регулярно «прогреваться»
+
+2. **cron-job.org** — каждые 10 минут вызывать ваш URL.
