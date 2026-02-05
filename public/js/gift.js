@@ -6,37 +6,96 @@
 let currentGift = null;
 let modelInfo = null;
 let wishlistItems = [];
+let currentSlug = 'me'; // slug текущего вишлиста (для ссылки «поделиться»)
 
 // Инициализация Telegram WebApp
 const tg = window.Telegram?.WebApp;
 
-// Показать экран
+// Показать экран (при возврате на список обновляем подарки — даритель видит актуальный список)
 function showScreen(screenId) {
+    const wasList = document.getElementById('screen-list')?.classList.contains('active');
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(`screen-${screenId}`).classList.add('active');
+    if (screenId === 'list' && wasList === false) loadWishlist();
 }
 
-// Загрузить данные модели и вишлист
+// Поиск вишлиста по ID пользователя или slug (me, u2 и т.д.)
+async function searchWishlist() {
+    const input = document.getElementById('search-input');
+    const raw = (input && input.value && input.value.trim()) || '';
+    if (!raw) {
+        if (tg?.showAlert) tg.showAlert('Введите ID или slug пользователя');
+        else alert('Введите ID или slug пользователя');
+        return;
+    }
+    const idNum = parseInt(raw, 10);
+    const slug = (!isNaN(idNum) && idNum > 0) ? 'u' + idNum : raw;
+    currentSlug = slug;
+    try {
+        document.getElementById('gifts-list').innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">⏳</div>
+                <div class="empty-title">Загрузка...</div>
+            </div>
+        `;
+        const [profileRes, listRes] = await Promise.all([
+            apiRequest(`/models/${slug}`).catch(() => null),
+            apiRequest(`/wishlist/by-slug/${slug}`)
+        ]);
+        modelInfo = profileRes || {};
+        wishlistItems = Array.isArray(listRes) ? listRes : [];
+        document.getElementById('model-name').textContent = modelInfo.firstName || 'Вишлист';
+        document.getElementById('model-bio').textContent = modelInfo.profile?.bio || '';
+        if (modelInfo.avatar) {
+            document.getElementById('model-avatar').innerHTML = `<img src="${modelInfo.avatar}" alt="">`;
+        } else {
+            document.getElementById('model-avatar').innerHTML = '👩‍💼';
+        }
+        if (input) input.value = '';
+        renderGifts();
+    } catch (e) {
+        console.error('Search wishlist error:', e);
+        document.getElementById('gifts-list').innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">😕</div>
+                <div class="empty-title">Вишлист не найден</div>
+                <div class="empty-text">Проверьте ID или slug (например 2, u2, me)</div>
+            </div>
+        `;
+        if (tg?.showAlert) tg.showAlert('Вишлист не найден. Проверьте ID или slug.');
+    }
+}
+
+// Загрузить данные модели и вишлист (параллельно — быстрее для дарителя)
 async function loadWishlist() {
     try {
-        // Получаем slug из URL или startParam
+        // Slug: из URL (?slug=u2), из hash (#slug=u2), или из Telegram start_param (t.me/Bot/app?startapp=u2)
         const urlParams = new URLSearchParams(window.location.search);
-        const slug = tg?.initDataUnsafe?.start_param || urlParams.get('slug') || 'me';
-        
-        // Загружаем профиль модели
-        try {
-            modelInfo = await apiRequest(`/models/${slug}`);
-            document.getElementById('model-name').textContent = modelInfo.firstName || 'Вишлист';
-            document.getElementById('model-bio').textContent = modelInfo.profile?.bio || '';
-            if (modelInfo.avatar) {
-                document.getElementById('model-avatar').innerHTML = `<img src="${modelInfo.avatar}" alt="">`;
-            }
-        } catch (e) {
-            document.getElementById('model-name').textContent = 'Вишлист';
+        const hashParams = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+        let slug = urlParams.get('slug') || hashParams.get('slug') || tg?.initDataUnsafe?.start_param;
+        if (!slug && tg?.initData && typeof tg.initData === 'string') {
+          const initParams = new URLSearchParams(tg.initData);
+          slug = initParams.get('start_param');
         }
-        
-        // Загружаем товары по slug
-        wishlistItems = await apiRequest(`/wishlist/by-slug/${slug}`);
+        slug = (slug && String(slug).trim()) || 'me';
+        currentSlug = slug;
+
+        // Профиль и подарки одним запросом — даритель сразу видит актуальный список
+        const [profileRes, listRes] = await Promise.all([
+            apiRequest(`/models/${slug}`).catch(() => null),
+            apiRequest(`/wishlist/by-slug/${slug}`)
+        ]);
+        modelInfo = profileRes || {};
+        wishlistItems = Array.isArray(listRes) ? listRes : [];
+
+        document.getElementById('model-name').textContent = modelInfo.firstName || 'Вишлист';
+        document.getElementById('model-bio').textContent = modelInfo.profile?.bio || '';
+        if (modelInfo.avatar) {
+            document.getElementById('model-avatar').innerHTML = `<img src="${modelInfo.avatar}" alt="">`;
+        } else {
+            document.getElementById('model-avatar').innerHTML = '👩‍💼';
+        }
+
         renderGifts();
     } catch (error) {
         console.error('Error loading wishlist:', error);
@@ -142,11 +201,19 @@ async function proceedToPayment() {
                 title: currentGift.name
             })
         });
-        
-        // В реальном приложении бот отправит Invoice в чат
-        // Для демо показываем экран успеха
-        showSuccessScreen(message);
-        
+
+        // Информационное окно: в чате появится инвойс
+        const infoText = 'В чате появится инвойс. Нажмите Pay в сообщении от бота.';
+        if (tg?.showAlert) {
+            tg.showAlert(infoText);
+        } else {
+            alert(infoText);
+        }
+        // Закрыть веб-апп через 1.5 сек
+        setTimeout(() => {
+            if (tg?.close) tg.close();
+        }, 1500);
+
     } catch (error) {
         console.error('Payment error:', error);
         alert('Ошибка: ' + (error.message || 'Не удалось создать заказ'));
@@ -166,12 +233,13 @@ function showSuccessScreen(message) {
     showScreen('success');
 }
 
-// Поделиться вишлистом
+// Поделиться вишлистом (прямая ссылка на Mini App — открывает подарки сразу)
 async function shareWishlist() {
-    let link = 'https://t.me/WishlistGiftBot?start=me';
+    let link = `https://t.me/WishlistttGiftBot/app?startapp=${currentSlug}`;
     try {
         const cfg = await fetch((window.API_BASE_URL || '/api') + '/config').then(r => r.json());
-        if (cfg.shareLink) link = cfg.shareLink;
+        const bot = (cfg.botUsername || 'WishlistttGiftBot').trim();
+        link = `https://t.me/${bot}/app?startapp=${currentSlug}`;
     } catch (_) {}
     
     if (navigator.share) {
@@ -215,6 +283,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (tg) {
         tg.ready();
         tg.expand();
+    }
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') searchWishlist();
+        });
     }
     await ensureAuth();
     loadWishlist();

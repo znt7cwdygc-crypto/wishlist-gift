@@ -272,10 +272,10 @@ function initEditForm() {
     if (form) form.addEventListener('submit', saveEditItem);
 }
 
-// Copy link (deep link для бота: t.me/Bot?start=slug)
+// Copy link (прямая ссылка на Mini App: t.me/Bot/app?startapp=slug)
 function copyLink() {
     const el = document.getElementById('public-link');
-    const link = el?.dataset?.fullUrl || el?.textContent?.replace(/^t\.me/, 'https://t.me') || 'https://t.me/WishlistGiftBot?start=me';
+    const link = el?.dataset?.fullUrl || el?.textContent?.replace(/^t\.me/, 'https://t.me') || 'https://t.me/WishlistttGiftBot/app?startapp=me';
     navigator.clipboard.writeText(link).then(() => {
         alert('Ссылка скопирована!');
     });

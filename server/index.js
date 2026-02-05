@@ -1,10 +1,13 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+const https = require('https');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const projectRoot = path.join(__dirname, '..');
 
 // Middleware
 app.use(cors({
@@ -16,8 +19,17 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Static files
-app.use(express.static(path.join(__dirname, '../public')));
+// Ответы JSON в UTF-8 (кириллица в названиях товаров и т.д.)
+app.set('json content type', 'application/json; charset=utf-8');
+
+// Static files — без кэша, чтобы после деплоя дарители видели актуальную версию
+app.use(express.static(path.join(__dirname, '../public'), {
+    setHeaders: (res, filePath) => {
+        if (/\.(html|js|css)$/i.test(filePath)) {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        }
+    }
+}));
 
 // Log API requests for debugging (before routes)
 app.use('/api', (req, res, next) => {
@@ -99,8 +111,40 @@ app.use((err, req, res, next) => {
 });
 
 const host = process.env.HOST || '0.0.0.0';
-app.listen(PORT, host, () => {
-    console.log(`🚀 Server running at http://${host}:${PORT}`);
-    console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+
+function startServer() {
+    const sslKeyPath = process.env.SSL_KEY_PATH || path.join(projectRoot, 'ssl', 'key.pem');
+    const sslCertPath = process.env.SSL_CERT_PATH || path.join(projectRoot, 'ssl', 'cert.pem');
+    const useHttps = fs.existsSync(sslKeyPath) && fs.existsSync(sslCertPath);
+
+    const onListen = async () => {
+        const protocol = useHttps ? 'https' : 'http';
+        console.log(`🚀 Server running at ${protocol}://${host}:${PORT}`);
+        console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
+
+        const { getBotToken } = require('./bot-token');
+        const botToken = getBotToken();
+
+        if (botToken) {
+            const telegramPolling = require('./telegram-polling');
+            telegramPolling.setOrdersRouter(ordersRouter);
+            telegramPolling.setProcessUpdate(paymentsRouter.processUpdate);
+            telegramPolling.startPolling();
+        } else {
+            console.log('ℹ️ BOT_TOKEN не задан — Stars и авторизация через бота недоступны');
+        }
+    };
+
+    if (useHttps) {
+        const options = {
+            key: fs.readFileSync(sslKeyPath),
+            cert: fs.readFileSync(sslCertPath)
+        };
+        https.createServer(options, app).listen(PORT, host, onListen);
+    } else {
+        app.listen(PORT, host, onListen);
+    }
+}
+
+startServer();
 

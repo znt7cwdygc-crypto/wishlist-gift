@@ -10,6 +10,37 @@
     <link rel="stylesheet" href="/css/components.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="/js/config.js"></script>
+    <script>
+      // Даритель открыл ссылку t.me/Bot/app?startapp=u2 — открыть подарки этого пользователя
+      (function() {
+        function getStartParam() {
+          var tg = window.Telegram && window.Telegram.WebApp;
+          if (!tg) return null;
+          var slug = tg.initDataUnsafe && tg.initDataUnsafe.start_param;
+          if (slug && typeof slug === 'string' && slug.length > 0) return slug;
+          if (tg.initData && typeof tg.initData === 'string') {
+            var params = new URLSearchParams(tg.initData);
+            slug = params.get('start_param');
+            if (slug && slug.length > 0) return slug;
+          }
+          return null;
+        }
+        function redirectIfStartParam() {
+          var slug = getStartParam();
+          if (slug) {
+            window.location.replace('/gift?slug=' + encodeURIComponent(slug));
+            return true;
+          }
+          return false;
+        }
+        if (redirectIfStartParam()) return;
+        var tg = window.Telegram && window.Telegram.WebApp;
+        if (tg && tg.ready) tg.ready();
+        if (tg && tg.onEvent && tg.onEvent('themeChanged', redirectIfStartParam));
+        setTimeout(redirectIfStartParam, 100);
+        setTimeout(redirectIfStartParam, 500);
+      })();
+    </script>
 </head>
 <body>
     <div class="container">

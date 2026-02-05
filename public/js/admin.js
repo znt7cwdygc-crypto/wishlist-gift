@@ -27,10 +27,13 @@ async function loadOverview() {
     }
 }
 
+let _adminModels = [];
+
 // Load models
 async function loadModels() {
     try {
         const models = await apiRequest('/admin/models');
+        _adminModels = models;
         const container = document.getElementById('models-list');
         
         if (models.length === 0) {
@@ -38,12 +41,13 @@ async function loadModels() {
             return;
         }
         
+        const escapeHtml = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         container.innerHTML = models.map(model => `
-            <div class="card mb-2">
+            <div class="card mb-2 model-card" style="cursor: pointer;" onclick="showModelGifts(${model.id})">
                 <div class="flex justify-between items-center">
                     <div>
-                        <h4>${model.firstName}</h4>
-                        <p class="text-secondary">ID: ${model.id}</p>
+                        <h4>${escapeHtml(model.firstName || 'Без имени')}</h4>
+                        <p class="text-secondary">ID: ${model.id}${model.username ? ' · @' + escapeHtml(model.username) : ''}</p>
                     </div>
                     <span class="badge badge-success">Активна</span>
                 </div>
@@ -52,6 +56,41 @@ async function loadModels() {
     } catch (error) {
         console.error('Error loading models:', error);
     }
+}
+
+async function showModelGifts(modelId) {
+    const modal = document.getElementById('model-gifts-modal');
+    const titleEl = document.getElementById('model-gifts-title');
+    const listEl = document.getElementById('model-gifts-list');
+    const model = _adminModels.find(m => m.id === modelId);
+    const modelName = model ? (model.firstName || model.username || 'Модель') : 'Модель';
+    titleEl.textContent = 'Подарки: ' + modelName;
+    listEl.innerHTML = '<div class="empty-state-text">Загрузка...</div>';
+    modal.style.display = 'flex';
+    try {
+        const gifts = await apiRequest('/wishlist/model/' + modelId);
+        if (gifts.length === 0) {
+            listEl.innerHTML = '<div class="empty-state"><div class="empty-state-text">Нет подарков</div></div>';
+            return;
+        }
+        const statusLabels = { available: 'Свободно', reserved: 'Зарезервировано', gifted: 'Подарено' };
+        listEl.innerHTML = gifts.map(g => `
+            <div class="flex justify-between items-center p-2 mb-2" style="background: var(--bg-secondary, #f5f5f5); border-radius: 8px;">
+                <div>
+                    <strong>${(g.name || 'Подарок').replace(/</g, '&lt;')}</strong>
+                    <span class="text-secondary ml-2">${g.totalStars || 0} ⭐</span>
+                </div>
+                <span class="badge ${g.status === 'gifted' ? 'badge-success' : g.status === 'reserved' ? 'badge-warning' : 'badge-secondary'}">${statusLabels[g.status] || g.status}</span>
+            </div>
+        `).join('');
+    } catch (e) {
+        listEl.innerHTML = '<div class="empty-state-text text-danger">Ошибка загрузки</div>';
+        console.error(e);
+    }
+}
+
+function closeModelGiftsModal() {
+    document.getElementById('model-gifts-modal').style.display = 'none';
 }
 
 // Load transactions
@@ -69,10 +108,11 @@ async function loadTransactions() {
             <div class="card mb-2">
                 <div class="flex justify-between items-center">
                     <div>
-                        <h4>Транзакция #${t.id}</h4>
-                        <p class="text-secondary">${t.starsAmount} Stars</p>
+                        <h4>${t.itemName || 'Подарок'} → ${t.modelName || '-'}</h4>
+                        <p class="text-secondary">${t.starsAmount} ⭐ от ${t.donor || '-'}</p>
+                        <p class="text-secondary small">${t.paidAt ? new Date(t.paidAt).toLocaleString('ru') : ''}</p>
                     </div>
-                    <span class="badge badge-success">Завершено</span>
+                    <span class="badge badge-success">Оплачено</span>
                 </div>
             </div>
         `).join('');

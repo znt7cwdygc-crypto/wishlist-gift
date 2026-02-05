@@ -70,6 +70,18 @@
                         </div>
                     </div>
                 </div>
+                <!-- Модальное окно: подарки модели -->
+                <div id="model-gifts-modal" class="modal-overlay" style="display: none;" onclick="if (event.target === this) closeModelGiftsModal()">
+                    <div class="modal" onclick="event.stopPropagation()">
+                        <div class="modal-header">
+                            <h2 class="card-title mb-0" id="model-gifts-title">Подарки</h2>
+                            <button type="button" class="modal-close" onclick="closeModelGiftsModal()">✕</button>
+                        </div>
+                        <div class="modal-body" id="model-gifts-list">
+                            <div class="empty-state-text">Загрузка...</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Transactions Tab -->

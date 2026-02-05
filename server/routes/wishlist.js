@@ -41,7 +41,7 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
-// По modelId
+// По modelId (без кэша — дарители всегда видят актуальный список)
 router.get('/model/:modelId', async (req, res) => {
     try {
         const modelId = parseInt(req.params.modelId) || 1;
@@ -49,19 +49,19 @@ router.get('/model/:modelId', async (req, res) => {
             'SELECT * FROM wishlist_items WHERE model_id = $1 AND is_active = true ORDER BY created_at DESC',
             [modelId]
         );
+        res.set('Cache-Control', 'no-store, max-age=0');
         res.json(result.rows.map(mapItem));
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// По public_slug
+// По public_slug — для дарителей по ссылке (без кэша, актуальные подарки)
 router.get('/by-slug/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
         if (!slug) return res.status(400).json({ error: 'Slug required' });
         
-        // Находим model_id по slug
         const profileResult = await db.query(
             'SELECT user_id FROM model_profiles WHERE public_slug = $1 OR public_link = $1',
             [slug]
@@ -72,6 +72,7 @@ router.get('/by-slug/:slug', async (req, res) => {
             'SELECT * FROM wishlist_items WHERE model_id = $1 AND is_active = true ORDER BY created_at DESC',
             [modelId]
         );
+        res.set('Cache-Control', 'no-store, max-age=0');
         res.json(result.rows.map(mapItem));
     } catch (error) {
         res.status(500).json({ error: error.message });

@@ -25,6 +25,9 @@ function showTab(tabId) {
     document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
     
     document.getElementById('main-nav').classList.remove('hidden');
+
+    if (tabId === 'balance') loadBalance();
+    if (tabId === 'wishlist') loadMyGifts();
 }
 
 function showAddGift(giftId = null) {
@@ -222,11 +225,13 @@ async function deleteGift() {
 // Поступления
 // =====================================================
 
-function loadEvents() {
-    // MVP: демо-данные
-    events = [
-        // { id: 1, gift: 'Духи Chanel', amount: 250, from: '@user123', message: 'С днём рождения!', date: new Date() }
-    ];
+async function loadEvents() {
+    try {
+        const data = await apiRequest('/orders/received/list');
+        events = Array.isArray(data) ? data : [];
+    } catch (e) {
+        events = [];
+    }
     renderEvents();
 }
 
@@ -271,10 +276,21 @@ function initFilterTabs() {
 // Баланс
 // =====================================================
 
-function loadBalance() {
-    // MVP: из localStorage
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    balance = stored.balance || { pending: 0, available: 0, withdrawn: 0 };
+async function loadBalance() {
+    try {
+        const profile = await apiRequest('/models/me');
+        if (profile?.balance) {
+            balance = {
+                pending: profile.balance.pending ?? 0,
+                available: profile.balance.available ?? 0,
+                withdrawn: profile.balance.withdrawn ?? 0
+            };
+        } else {
+            balance = { pending: 0, available: 0, withdrawn: 0 };
+        }
+    } catch (e) {
+        balance = { pending: 0, available: 0, withdrawn: 0 };
+    }
     renderBalance();
 }
 
@@ -377,7 +393,7 @@ function createInvite() {
     const token = generateToken(12);
     const invite = {
         token,
-        link: `t.me/WishlistGiftBot?start=${token}`,
+        link: `t.me/WishlistttGiftBot?start=${token}`,
         createdAt: new Date().toISOString()
     };
     
@@ -423,20 +439,49 @@ function renderInvites() {
 // =====================================================
 
 async function copyLink() {
+    let link = 'https://t.me/WishlistttGiftBot/app?startapp=me';
     try {
         const profile = await apiRequest('/models/me').catch(() => null);
         const cfg = await fetch((window.API_BASE_URL || '/api') + '/config').then(r => r.json());
-        const bot = cfg.botUsername || 'WishlistGiftBot';
-        const slug = profile?.profile?.publicSlug || profile?.profile?.publicLink || 'me';
-        const link = `https://t.me/${bot}?start=${slug}`;
+        const bot = (cfg.botUsername || 'WishlistttGiftBot').trim().replace(/^@/, '');
+        const slug = (profile?.profile?.publicSlug || profile?.profile?.publicLink || 'me').trim();
+        link = `https://t.me/${bot}/app?startapp=${slug}`;
         const el = document.getElementById('public-link');
-        if (el) el.textContent = link.replace('https://', '');
-        await navigator.clipboard.writeText(link);
+        if (el) {
+            el.textContent = link.replace('https://', '');
+            el.title = link;
+        }
+    } catch (_) {}
+
+    let copied = false;
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(link);
+            copied = true;
+        }
+    } catch (_) {}
+    if (!copied) {
+        const ta = document.createElement('textarea');
+        ta.value = link;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, link.length);
+        try {
+            copied = document.execCommand('copy');
+        } catch (_) {}
+        document.body.removeChild(ta);
+    }
+    if (copied && tg?.showAlert) {
+        tg.showAlert('Ссылка скопирована');
+    } else if (copied) {
         alert('Ссылка скопирована!');
-    } catch (e) {
-        const link = 'https://t.me/WishlistGiftBot?start=me';
-        await navigator.clipboard.writeText(link);
-        alert('Ссылка скопирована!');
+    } else if (tg?.showPopup) {
+        tg.showPopup({ title: 'Ссылка на вишлист', message: link + '\n\nНажмите и удерживайте ссылку, чтобы скопировать.', buttons: [{ type: 'ok' }] });
+    } else {
+        prompt('Скопируйте ссылку:', link);
     }
 }
 
@@ -446,13 +491,22 @@ async function loadShareLink() {
             fetch((window.API_BASE_URL || '/api') + '/config').then(r => r.json()),
             apiRequest('/models/me').catch(() => null)
         ]);
-        const bot = cfg.botUsername || 'WishlistGiftBot';
-        const slug = profile?.profile?.publicSlug || profile?.profile?.publicLink || 'me';
-        const link = `https://t.me/${bot}?start=${slug}`;
+        const bot = (cfg.botUsername || 'WishlistttGiftBot').trim().replace(/^@/, '');
+        const slug = (profile?.profile?.publicSlug || profile?.profile?.publicLink || 'me').trim();
+        const link = `https://t.me/${bot}/app?startapp=${slug}`;
         window.__BOT_USERNAME__ = bot;
         const el = document.getElementById('public-link');
-        if (el) el.textContent = link.replace('https://', '');
-    } catch (_) {}
+        if (el) {
+            el.textContent = link.replace('https://', '');
+            el.title = link;
+        }
+    } catch (_) {
+        const el = document.getElementById('public-link');
+        if (el) {
+            el.textContent = 't.me/WishlistttGiftBot/app?startapp=me';
+            el.title = 'https://t.me/WishlistttGiftBot/app?startapp=me';
+        }
+    }
 }
 
 // =====================================================
@@ -508,7 +562,7 @@ async function resizeImage(file) {
 
 async function initAuth() {
     if (!tg?.initData) {
-        showAuthError('Откройте приложение через Telegram: нажмите меню бота или перейдите по ссылке t.me/YourBot?start=me');
+        showAuthError('Откройте приложение через Telegram: нажмите меню бота или перейдите по ссылке t.me/YourBot/app?startapp=me');
         return false;
     }
 
@@ -542,7 +596,7 @@ function showAuthError(message) {
             <div class="screen-icon" style="font-size: 48px;">🔐</div>
             <div class="screen-title" style="margin-bottom: 12px;">Требуется Telegram</div>
             <p class="text-secondary" style="margin-bottom: 24px;">${escapeHtml(message)}</p>
-            <a href="https://t.me/${(window.__BOT_USERNAME__ || 'WishlistGiftBot')}" class="btn btn-primary">Открыть в Telegram</a>
+            <a href="https://t.me/${(window.__BOT_USERNAME__ || 'WishlistttGiftBot')}" class="btn btn-primary">Открыть в Telegram</a>
         </div>
     `;
 }

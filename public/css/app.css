@@ -231,6 +231,31 @@ html, body {
     text-overflow: ellipsis;
 }
 
+.search-wishlist {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    align-items: center;
+}
+
+.search-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.9375rem;
+    background: var(--bg);
+    color: var(--text);
+}
+
+.search-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+.search-wishlist .btn-sm {
+    flex-shrink: 0;
+}
+
 /* =====================================================
    Gift Cards
    ===================================================== */
@@ -481,6 +506,9 @@ html, body {
     color: var(--text-secondary);
     margin-bottom: 12px;
     word-break: break-all;
+    user-select: text;
+    -webkit-user-select: text;
+    -webkit-touch-callout: default;
 }
 
 /* Stats blocks */

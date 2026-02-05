@@ -8,7 +8,8 @@ const router = express.Router();
 const db = require('../db');
 const { validateInitData } = require('./auth');
 
-const BOT_TOKEN = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+const { getBotToken } = require('../bot-token');
+const BOT_TOKEN = getBotToken();
 
 async function sendInvoice(chatId, amount, payload, title = 'Stars') {
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendInvoice`;

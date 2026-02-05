@@ -10,6 +10,9 @@ yarn-error.log*
 .env.*.local
 DB_CREDENTIALS.txt
 
+# SSL (самоподписанные сертификаты)
+ssl/
+
 # Uploads
 uploads/
 public/uploads/

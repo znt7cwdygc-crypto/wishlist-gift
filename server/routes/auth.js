@@ -10,7 +10,8 @@ const router = express.Router();
 const db = require('../db');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'wishlist-gift-secret-change-in-production';
-const BOT_TOKEN = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+const { getBotToken } = require('../bot-token');
+const BOT_TOKEN = getBotToken();
 const AUTH_MAX_AGE = 24 * 60 * 60; // 24 часа
 
 /**

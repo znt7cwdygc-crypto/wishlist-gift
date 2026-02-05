@@ -22,6 +22,11 @@ router.get('/me', auth, async (req, res) => {
         if (!row) {
             return res.status(404).json({ error: 'Profile not found' });
         }
+        const balResult = await db.query(
+            'SELECT total_stars_earned, available_for_withdrawal, pending_21_days, withdrawn FROM model_balances WHERE model_id = $1',
+            [userId]
+        );
+        const bal = balResult.rows[0] || {};
         res.json({
             id: row.id,
             telegramId: row.telegram_id,
@@ -33,6 +38,12 @@ router.get('/me', auth, async (req, res) => {
                 publicLink: row.public_slug || 'me',
                 bio: row.bio,
                 banner: row.banner_url
+            },
+            balance: {
+                pending: parseInt(bal.pending_21_days, 10) || 0,
+                available: parseInt(bal.available_for_withdrawal, 10) || 0,
+                withdrawn: parseInt(bal.withdrawn, 10) || 0,
+                totalEarned: parseInt(bal.total_stars_earned, 10) || 0
             }
         });
     } catch (error) {
