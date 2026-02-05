@@ -28,34 +28,47 @@ async function loadOverview() {
 }
 
 let _adminModels = [];
+const ADMIN_PAGE_SIZE = 10;
+let adminModelsPage = 1;
+let adminTransactionsPage = 1;
 
-// Load models
+// Load models (с пагинацией)
 async function loadModels() {
     try {
         const models = await apiRequest('/admin/models');
         _adminModels = models;
-        const container = document.getElementById('models-list');
-        
-        if (models.length === 0) {
-            container.innerHTML = '<div class="empty-state"><div class="empty-state-text">Нет моделей</div></div>';
-            return;
-        }
-        
-        const escapeHtml = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        container.innerHTML = models.map(model => `
-            <div class="card mb-2 model-card" style="cursor: pointer;" onclick="showModelGifts(${model.id})">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h4>${escapeHtml(model.firstName || 'Без имени')}</h4>
-                        <p class="text-secondary">ID: ${model.id}${model.username ? ' · @' + escapeHtml(model.username) : ''}</p>
-                    </div>
-                    <span class="badge badge-success">Активна</span>
-                </div>
-            </div>
-        `).join('');
+        adminModelsPage = 1;
+        renderModels(models);
     } catch (error) {
         console.error('Error loading models:', error);
     }
+}
+
+function renderModels(models) {
+    const container = document.getElementById('models-list');
+    if (!models || models.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-text">Нет моделей</div></div>';
+        return;
+    }
+    const to = adminModelsPage * ADMIN_PAGE_SIZE;
+    const visible = models.slice(0, to);
+    const hasMore = models.length > to;
+    const escapeHtml = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    container.innerHTML = visible.map(model => `
+        <div class="card mb-2 model-card" style="cursor: pointer;" onclick="showModelGifts(${model.id})">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h4>${escapeHtml(model.firstName || 'Без имени')}</h4>
+                    <p class="text-secondary">ID: ${model.id}${model.username ? ' · @' + escapeHtml(model.username) : ''}</p>
+                </div>
+                <span class="badge badge-success">Активна</span>
+            </div>
+        </div>
+    `).join('') + (hasMore ? `
+        <button type="button" class="btn btn-ghost pagination-more w-full" onclick="adminModelsPage++; renderModels(_adminModels);">
+            Показать ещё (${models.length - to} из ${models.length})
+        </button>
+    ` : '');
 }
 
 async function showModelGifts(modelId) {
@@ -93,32 +106,45 @@ function closeModelGiftsModal() {
     document.getElementById('model-gifts-modal').style.display = 'none';
 }
 
-// Load transactions
+let _adminTransactions = [];
+
+// Load transactions (с пагинацией)
 async function loadTransactions() {
     try {
         const transactions = await apiRequest('/admin/transactions');
-        const container = document.getElementById('transactions-list');
-        
-        if (transactions.length === 0) {
-            container.innerHTML = '<div class="empty-state"><div class="empty-state-text">Нет транзакций</div></div>';
-            return;
-        }
-        
-        container.innerHTML = transactions.map(t => `
-            <div class="card mb-2">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h4>${t.itemName || 'Подарок'} → ${t.modelName || '-'}</h4>
-                        <p class="text-secondary">${t.starsAmount} ⭐ от ${t.donor || '-'}</p>
-                        <p class="text-secondary small">${t.paidAt ? new Date(t.paidAt).toLocaleString('ru') : ''}</p>
-                    </div>
-                    <span class="badge badge-success">Оплачено</span>
-                </div>
-            </div>
-        `).join('');
+        _adminTransactions = transactions || [];
+        adminTransactionsPage = 1;
+        renderTransactions(_adminTransactions);
     } catch (error) {
         console.error('Error loading transactions:', error);
     }
+}
+
+function renderTransactions(transactions) {
+    const container = document.getElementById('transactions-list');
+    if (!transactions || transactions.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-text">Нет транзакций</div></div>';
+        return;
+    }
+    const to = adminTransactionsPage * ADMIN_PAGE_SIZE;
+    const visible = transactions.slice(0, to);
+    const hasMore = transactions.length > to;
+    container.innerHTML = visible.map(t => `
+        <div class="card mb-2">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h4>${(t.itemName || 'Подарок').replace(/</g, '&lt;')} → ${(t.modelName || '-').replace(/</g, '&lt;')}</h4>
+                    <p class="text-secondary">${t.starsAmount} ⭐ от ${(t.donor || '-').replace(/</g, '&lt;')}</p>
+                    <p class="text-secondary small">${t.paidAt ? new Date(t.paidAt).toLocaleString('ru') : ''}</p>
+                </div>
+                <span class="badge badge-success">Оплачено</span>
+            </div>
+        </div>
+    `).join('') + (hasMore ? `
+        <button type="button" class="btn btn-ghost pagination-more w-full" onclick="adminTransactionsPage++; renderTransactions(_adminTransactions);">
+            Показать ещё (${transactions.length - to} из ${transactions.length})
+        </button>
+    ` : '');
 }
 
 // Initialize

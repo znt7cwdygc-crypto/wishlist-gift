@@ -237,59 +237,75 @@ async function processUpdate(body) {
                     });
                 }
             } else if (payload.startsWith('order:')) {
-                console.log('[Updates] successful_payment payload=', JSON.stringify(payload), 'len=', payload.length, 'amount=', amount);
+                const payloadNorm = payload.trim();
+                console.log('[Updates] successful_payment ORDER: payload=', payloadNorm, 'amount=', amount);
                 let order = ordersRouter?.findOrderByPayload
-                    ? await ordersRouter.findOrderByPayload(payload)
+                    ? await ordersRouter.findOrderByPayload(payloadNorm)
                     : null;
                 if (!order) {
-                    const orderIdFromPayload = payload.replace(/^order:/, '').trim();
+                    const orderIdFromPayload = payloadNorm.replace(/^order:/, '').trim();
                     if (orderIdFromPayload) {
                         const byId = await db.query('SELECT * FROM orders WHERE id = $1', [orderIdFromPayload]);
                         order = byId.rows[0] || null;
-                        if (order) console.log('[Updates] Order found by id from payload:', orderIdFromPayload);
+                        if (order) console.log('[Updates] Order found by id:', orderIdFromPayload);
                     }
                 }
                 if (!order) {
-                    console.error('[Updates] Order not found for payload:', payload);
                     try {
-                        const allPayloads = await db.query('SELECT id, telegram_invoice_payload, status FROM orders WHERE telegram_invoice_payload LIKE $1 LIMIT 5', ['order:%']);
-                        console.error('[Updates] Sample payloads in DB:', allPayloads.rows.map(r => ({ id: r.id, payload: r.telegram_invoice_payload, status: r.status })));
+                        const recent = await db.query(
+                            `SELECT * FROM orders WHERE status IN ('reserved', 'created') AND telegram_invoice_payload IS NOT NULL AND telegram_invoice_payload LIKE 'order:%' ORDER BY reserved_at DESC LIMIT 20`
+                        );
+                        const match = recent.rows.find(r => (r.telegram_invoice_payload || '').trim() === payloadNorm);
+                        if (match) {
+                            order = match;
+                            console.log('[Updates] Order found by LIKE fallback:', order.id);
+                        }
+                    } catch (e) { /* ignore */ }
+                }
+                if (!order) {
+                    console.error('[Updates] Order not found for payload:', payloadNorm);
+                    try {
+                        const allPayloads = await db.query('SELECT id, telegram_invoice_payload, status FROM orders WHERE telegram_invoice_payload LIKE $1 ORDER BY reserved_at DESC LIMIT 5', ['order:%']);
+                        console.error('[Updates] Recent payloads in DB:', allPayloads.rows.map(r => ({ id: r.id, payload: (r.telegram_invoice_payload || '').slice(0, 50), status: r.status })));
                     } catch (e) { /* ignore */ }
                 } else {
                     try {
-                        await ordersRouter.markOrderPaid(order.id, chargeId);
+                        const orderIdForDb = order.id != null ? String(order.id) : order.id;
+                        await ordersRouter.markOrderPaid(orderIdForDb, chargeId);
                         const itemR = await db.query('SELECT name FROM wishlist_items WHERE id = $1', [order.item_id]);
                         const modelR = await db.query('SELECT first_name, username, telegram_id FROM users WHERE id = $1', [order.model_id]);
-                        const itemName = itemR.rows[0]?.name || 'Подарок';
-                        const modelName = modelR.rows[0]?.first_name || modelR.rows[0]?.username || 'получатель';
+                        const itemName = (itemR.rows[0]?.name || 'Подарок').toString();
+                        const modelName = (modelR.rows[0]?.first_name || modelR.rows[0]?.username || 'получатель').toString();
                         const rawTid = modelR.rows[0]?.telegram_id;
                         const modelChatId = rawTid != null ? String(rawTid).trim() : null;
 
-                        // Сначала уведомление модели (получателю подарка) — не должно зависеть от отправки дарителю
+                        console.log('[Updates] markOrderPaid OK, item=', itemName, 'model_id=', order.model_id, 'model_telegram_id=', modelChatId ? 'set' : 'MISSING');
+
+                        // Сначала уведомление модели (получателю подарка)
                         if (modelChatId) {
                             const donorLabel = username !== 'Пользователь' ? ` от ${username}` : '';
                             try {
                                 const modelSendRes = await telegramApi('sendMessage', {
-                                    chat_id: modelChatId,
+                                    chat_id: String(modelChatId),
                                     text: `🎁 Вам подарили: «${itemName}». Стоимость: ${amount} ⭐${donorLabel}`
                                 });
                                 if (modelSendRes.ok) {
-                                    console.log('[Updates] Notify model sent OK:', order.model_id, itemName);
+                                    console.log('[Updates] Notify model OK:', order.model_id, itemName);
                                 } else {
-                                    console.warn('[Updates] Notify model failed:', modelSendRes.description, { model_id: order.model_id, chat_id: modelChatId });
+                                    console.warn('[Updates] Notify model failed:', modelSendRes.description, { model_id: order.model_id });
                                 }
                             } catch (notifyErr) {
                                 console.error('[Updates] Notify model error:', notifyErr.message, { model_id: order.model_id });
                             }
                         } else {
-                            console.warn('[Updates] No telegram_id for model_id:', order.model_id, '— уведомление не отправлено');
+                            console.warn('[Updates] No telegram_id for model_id=', order.model_id, '— модель не получит уведомление в ТГ. Пусть откроет кабинет через бота и сохранит профиль.');
                         }
 
-                        // Затем сообщение дарителю (не блокирует уведомление модели при ошибке)
+                        // Сообщение дарителю
                         if (chatId) {
                             try {
                                 const donorRes = await telegramApi('sendMessage', {
-                                    chat_id: chatId,
+                                    chat_id: String(chatId),
                                     text: `✅ Подарок «${itemName}» для ${modelName} оплачен! ${amount} ⭐`
                                 });
                                 if (!donorRes.ok) console.warn('[Updates] Notify donor failed:', donorRes.description);

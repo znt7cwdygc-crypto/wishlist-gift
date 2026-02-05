@@ -5,6 +5,34 @@
 
 const tg = window.Telegram?.WebApp;
 const STORAGE_KEY = 'wishlist_cabinet';
+const INIT_DATA_STORAGE_KEY = 'wishlist_tg_init_data';
+
+/** Ждём появления initData (Telegram иногда внедряет его с задержкой после перехода по ссылке). */
+function getInitData(maxWaitMs = 2500) {
+    return new Promise((resolve) => {
+        const tryGet = () => {
+            const data = window.Telegram?.WebApp?.initData;
+            if (data && typeof data === 'string' && data.length > 0) {
+                resolve(data);
+                return true;
+            }
+            const stored = sessionStorage.getItem(INIT_DATA_STORAGE_KEY);
+            if (stored) {
+                resolve(stored);
+                return true;
+            }
+            return false;
+        };
+        if (tryGet()) return;
+        const start = Date.now();
+        const t = setInterval(() => {
+            if (tryGet() || Date.now() - start > maxWaitMs) {
+                clearInterval(t);
+                if (!tryGet()) resolve(null);
+            }
+        }, 100);
+    });
+}
 
 let myGifts = [];
 let events = [];
@@ -12,6 +40,10 @@ let balance = { pending: 0, available: 0, withdrawn: 0 };
 let settings = { name: '', bio: '', isPublic: true, invites: [] };
 let editingGiftId = null;
 let selectedPhoto = null;
+
+const PAGE_SIZE = 8;
+let myGiftsPage = 1;
+let eventsPage = 1;
 
 // =====================================================
 // Навигация
@@ -21,13 +53,18 @@ function showTab(tabId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     
-    document.getElementById(`tab-${tabId}`).classList.add('active');
+    const tabEl = document.getElementById(`tab-${tabId}`);
+    tabEl.classList.add('active');
     document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+    
+    const content = tabEl.querySelector('.app-content');
+    if (content) content.scrollTop = 0;
     
     document.getElementById('main-nav').classList.remove('hidden');
 
     if (tabId === 'balance') loadBalance();
-    if (tabId === 'wishlist') loadMyGifts();
+    if (tabId === 'wishlist') { myGiftsPage = 1; loadMyGifts(); }
+    if (tabId === 'events') { eventsPage = 1; loadEvents(); }
 }
 
 function showAddGift(giftId = null) {
@@ -102,7 +139,12 @@ function renderMyGifts() {
         return;
     }
     
-    container.innerHTML = myGifts.map(item => {
+    const from = 0;
+    const to = myGiftsPage * PAGE_SIZE;
+    const visible = myGifts.slice(from, to);
+    const hasMore = myGifts.length > to;
+    
+    container.innerHTML = visible.map(item => {
         const photo = item.photos?.[0];
         const status = item.status || 'available';
         const statusLabels = {
@@ -126,7 +168,11 @@ function renderMyGifts() {
                 </div>
             </div>
         `;
-    }).join('');
+    }).join('') + (hasMore ? `
+        <button type="button" class="btn btn-ghost pagination-more" onclick="myGiftsPage++; renderMyGifts();">
+            Показать ещё (${myGifts.length - to} из ${myGifts.length})
+        </button>
+    ` : (myGifts.length > PAGE_SIZE ? `<p class="text-sm text-secondary text-center mt-2">Показано ${myGifts.length} из ${myGifts.length}</p>` : ''));
 }
 
 // Форма добавления/редактирования
@@ -249,7 +295,11 @@ function renderEvents() {
         return;
     }
     
-    container.innerHTML = events.map(ev => `
+    const to = eventsPage * PAGE_SIZE;
+    const visible = events.slice(0, to);
+    const hasMore = events.length > to;
+    
+    container.innerHTML = visible.map(ev => `
         <div class="feed-item">
             <div class="feed-icon">🎁</div>
             <div class="feed-content">
@@ -259,7 +309,11 @@ function renderEvents() {
             </div>
             <div class="feed-amount">${ev.amount} ⭐</div>
         </div>
-    `).join('');
+    `).join('') + (hasMore ? `
+        <button type="button" class="btn btn-ghost pagination-more" onclick="eventsPage++; renderEvents();">
+            Показать ещё (${events.length - to} из ${events.length})
+        </button>
+    ` : (events.length > PAGE_SIZE ? `<p class="text-sm text-secondary text-center mt-2">Показано ${events.length}</p>` : ''));
 }
 
 function initFilterTabs() {
@@ -561,8 +615,9 @@ async function resizeImage(file) {
 // =====================================================
 
 async function initAuth() {
-    if (!tg?.initData) {
-        showAuthError('Откройте приложение через Telegram: нажмите меню бота или перейдите по ссылке t.me/YourBot/app?startapp=me');
+    const initData = await getInitData();
+    if (!initData) {
+        showAuthError('Откройте приложение через Telegram: нажмите меню бота или перейдите по ссылке t.me/YourBot/app?startapp=me', true);
         return false;
     }
 
@@ -570,12 +625,12 @@ async function initAuth() {
         const res = await fetch((window.API_BASE_URL || '/api') + '/auth/telegram', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ initData: tg.initData })
+            body: JSON.stringify({ initData })
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
 
         if (!res.ok) {
-            showAuthError(data.error || 'Ошибка авторизации');
+            showAuthError(data.error || 'Ошибка авторизации', false);
             return false;
         }
 
@@ -585,16 +640,17 @@ async function initAuth() {
         return true;
     } catch (e) {
         console.error('Auth error:', e);
-        showAuthError('Не удалось авторизоваться. Проверьте интернет и попробуйте снова.');
+        showAuthError('Не удалось авторизоваться. Проверьте интернет и попробуйте снова.', false);
         return false;
     }
 }
 
-function showAuthError(message) {
+function showAuthError(message, needTelegram) {
+    var title = needTelegram ? 'Требуется Telegram' : 'Ошибка входа';
     document.body.innerHTML = `
         <div class="screen-center" style="padding: 24px; text-align: center;">
             <div class="screen-icon" style="font-size: 48px;">🔐</div>
-            <div class="screen-title" style="margin-bottom: 12px;">Требуется Telegram</div>
+            <div class="screen-title" style="margin-bottom: 12px;">${escapeHtml(title)}</div>
             <p class="text-secondary" style="margin-bottom: 24px;">${escapeHtml(message)}</p>
             <a href="https://t.me/${(window.__BOT_USERNAME__ || 'WishlistttGiftBot')}" class="btn btn-primary">Открыть в Telegram</a>
         </div>

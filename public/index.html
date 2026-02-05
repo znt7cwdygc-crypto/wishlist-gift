@@ -36,9 +36,14 @@
         if (redirectIfStartParam()) return;
         var tg = window.Telegram && window.Telegram.WebApp;
         if (tg && tg.ready) tg.ready();
+        function saveInitData() {
+          var d = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
+          if (d) try { sessionStorage.setItem('wishlist_tg_init_data', d); } catch (e) {}
+        }
+        saveInitData();
         if (tg && tg.onEvent && tg.onEvent('themeChanged', redirectIfStartParam));
-        setTimeout(redirectIfStartParam, 100);
-        setTimeout(redirectIfStartParam, 500);
+        setTimeout(function() { redirectIfStartParam(); saveInitData(); }, 100);
+        setTimeout(function() { redirectIfStartParam(); saveInitData(); }, 500);
       })();
     </script>
 </head>
@@ -71,38 +76,25 @@
                 </p>
             </section>
 
-            <!-- Role Cards -->
-            <div class="grid grid-3 mb-3">
-                <!-- Model Card -->
-                <div class="role-card card">
+            <!-- Поиск вишлиста модели -->
+            <section class="mb-3">
+                <div class="card" style="max-width: 480px; margin: 0 auto;">
+                    <h3 class="mb-2">Найти вишлист модели</h3>
+                    <p class="text-secondary mb-3 text-sm">Введите ID или slug (например <code>u2</code>, <code>2</code> или ссылку от модели)</p>
+                    <div class="flex gap-2" style="flex-wrap: wrap;">
+                        <input type="text" id="main-search-slug" class="form-input" placeholder="u2, 2, me..." style="flex: 1; min-width: 140px;">
+                        <button type="button" class="btn btn-primary" onclick="openWishlistFromSearch()">Открыть вишлист</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Мой вишлист -->
+            <div class="mb-3">
+                <div class="role-card card" style="max-width: 480px; margin: 0 auto;">
                     <div class="role-icon">👩‍💼</div>
                     <h3 class="mb-2">Мой вишлист</h3>
                     <p class="mb-3 text-secondary">Создайте вишлист и получайте подарки</p>
                     <a href="/cabinet" class="btn btn-primary w-full">Открыть кабинет</a>
-                </div>
-
-                <!-- Donor Card -->
-                <div class="role-card card">
-                    <div class="role-icon">🎁</div>
-                    <h3 class="mb-2">Подарить</h3>
-                    <p class="mb-3 text-secondary">Выберите подарок для любимой модели</p>
-                    <a href="/gift" class="btn btn-primary w-full">Открыть вишлист</a>
-                </div>
-
-                <!-- Stars Card -->
-                <div class="role-card card">
-                    <div class="role-icon">⭐</div>
-                    <h3 class="mb-2">Отправить Stars</h3>
-                    <p class="mb-3 text-secondary">Просто поддержать Stars</p>
-                    <a href="/stars" class="btn btn-primary w-full">Отправить Stars</a>
-                </div>
-
-                <!-- Admin Card -->
-                <div class="role-card card">
-                    <div class="role-icon">⚙️</div>
-                    <h3 class="mb-2">Админ-панель</h3>
-                    <p class="mb-3 text-secondary">Управление платформой</p>
-                    <a href="/admin" class="btn btn-secondary w-full">Войти как админ</a>
                 </div>
             </div>
 
@@ -132,6 +124,24 @@
 
     <script src="/js/app.js"></script>
     <script src="/js/i18n.js"></script>
+    <script>
+      function openWishlistFromSearch() {
+        var el = document.getElementById('main-search-slug');
+        var raw = (el && el.value && el.value.trim()) || '';
+        if (!raw) return;
+        var slug = raw;
+        var urlMatch = raw.match(/[?&]slug=([^&\s#]+)/i);
+        if (urlMatch) slug = decodeURIComponent(urlMatch[1].trim());
+        else {
+          var num = parseInt(raw, 10);
+          if (!isNaN(num) && num > 0) slug = 'u' + num;
+        }
+        window.location.href = '/gift?slug=' + encodeURIComponent(slug);
+      }
+      document.getElementById('main-search-slug').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); openWishlistFromSearch(); }
+      });
+    </script>
 </body>
 </html>
 

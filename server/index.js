@@ -49,7 +49,72 @@ const paymentsRouter = require('./routes/payments');
 paymentsRouter.setOrdersRouter(ordersRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/stars', require('./routes/stars'));
-app.use('/api/admin', require('./routes/admin'));
+
+const adminAuth = require('./middleware/admin-auth');
+
+// Админ: вход только по особой ссылке + пароль
+app.get('/manage', (req, res) => {
+    if (!adminAuth.checkEntryKey(req.query.key)) {
+        return res.status(404).send('Not found');
+    }
+    const html = `<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вход в админку</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+  <div class="container" style="max-width: 400px; margin: 4rem auto; padding: 2rem;">
+    <h1 class="mb-3">🔐 Вход в админку</h1>
+    <form id="login-form" method="post" action="/api/admin/login">
+      <input type="hidden" name="key" value="${(req.query.key || '').replace(/"/g, '&quot;')}">
+      <div class="form-group mb-3">
+        <label class="form-label">Пароль</label>
+        <input type="password" name="password" class="form-input" placeholder="Пароль" required autofocus>
+      </div>
+      <button type="submit" class="btn btn-primary w-full">Войти</button>
+    </form>
+    <p id="err" class="text-secondary mt-2" style="display:none;"></p>
+  </div>
+  <script>
+    document.getElementById('login-form').onsubmit = function(e) {
+      e.preventDefault();
+      var form = e.target;
+      var err = document.getElementById('err');
+      err.style.display = 'none';
+      fetch(form.action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: form.key.value, password: form.password.value })
+      }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+        .then(function(o) {
+          if (o.ok && o.data.success) window.location.href = '/admin';
+          else { err.textContent = o.data.error || 'Неверный пароль'; err.style.display = 'block'; }
+        }).catch(function() { err.textContent = 'Ошибка сети'; err.style.display = 'block'; });
+    };
+  </script>
+</body>
+</html>`;
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+});
+
+app.post('/api/admin/login', (req, res) => {
+    const { key, password } = req.body || {};
+    if (!adminAuth.checkEntryKey(key)) {
+        return res.status(400).json({ error: 'Неверная ссылка' });
+    }
+    if (!adminAuth.checkPassword(password)) {
+        return res.status(401).json({ error: 'Неверный пароль' });
+    }
+    adminAuth.setAdminCookie(res);
+    res.json({ success: true });
+});
+
+app.use('/api/admin', adminAuth.requireAdminSession, require('./routes/admin'));
 
 // Frontend Routes
 app.get('/', (req, res) => {
@@ -82,7 +147,7 @@ app.get('/donor/:publicLink?', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/donor.html'));
 });
 
-app.get('/admin', (req, res) => {
+app.get('/admin', adminAuth.requireAdminSession, (req, res) => {
     res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 

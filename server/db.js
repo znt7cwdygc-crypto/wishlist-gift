@@ -4,14 +4,16 @@ require('dotenv').config();
 // Render, Railway, Heroku и др. передают DATABASE_URL
 const config = process.env.DATABASE_URL ? {
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false },
+    client_encoding: 'UTF8',
 } : {
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
     database: process.env.DB_NAME || 'wishlist_gift',
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    client_encoding: 'UTF8',
 };
 
 const pool = new Pool(config);
@@ -20,7 +22,7 @@ const utf8Clients = new WeakSet();
 
 async function ensureUtf8(client) {
     if (utf8Clients.has(client)) return;
-    await client.query("SET client_encoding TO 'UTF8'");
+    await client.query('SET client_encoding TO \'UTF8\'');
     utf8Clients.add(client);
 }
 

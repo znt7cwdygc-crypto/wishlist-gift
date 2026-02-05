@@ -64,12 +64,19 @@ function startPolling() {
         setImmediate(poll);
     };
 
-    deleteWebhook().then(() => {
-        console.log('[Polling] Запуск опроса getUpdates для приёма оплат');
-        poll();
-    }).catch(e => {
-        console.warn('[Polling] start failed:', e.message);
-    });
+    const run = () => {
+        deleteWebhook().then(() => {
+            if (offset === 0) console.log('[Polling] Запуск опроса getUpdates для приёма оплат');
+            poll();
+        }).catch(e => {
+            console.warn('[Polling] deleteWebhook error:', e.message);
+            poll();
+        });
+    };
+
+    run();
+    // Периодически снимать webhook, чтобы апдейты не уходили на другой URL (если кто-то его поставил)
+    setInterval(() => deleteWebhook().catch(() => {}), 90 * 1000);
 }
 
 module.exports = { startPolling, setOrdersRouter, setProcessUpdate };

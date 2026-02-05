@@ -7,6 +7,8 @@ let currentGift = null;
 let modelInfo = null;
 let wishlistItems = [];
 let currentSlug = 'me'; // slug текущего вишлиста (для ссылки «поделиться»)
+const GIFT_PAGE_SIZE = 10;
+let giftPage = 1;
 
 // Инициализация Telegram WebApp
 const tg = window.Telegram?.WebApp;
@@ -44,6 +46,7 @@ async function searchWishlist() {
         ]);
         modelInfo = profileRes || {};
         wishlistItems = Array.isArray(listRes) ? listRes : [];
+        giftPage = 1;
         document.getElementById('model-name').textContent = modelInfo.firstName || 'Вишлист';
         document.getElementById('model-bio').textContent = modelInfo.profile?.bio || '';
         if (modelInfo.avatar) {
@@ -87,6 +90,7 @@ async function loadWishlist() {
         ]);
         modelInfo = profileRes || {};
         wishlistItems = Array.isArray(listRes) ? listRes : [];
+        giftPage = 1;
 
         document.getElementById('model-name').textContent = modelInfo.firstName || 'Вишлист';
         document.getElementById('model-bio').textContent = modelInfo.profile?.bio || '';
@@ -109,7 +113,7 @@ async function loadWishlist() {
     }
 }
 
-// Отрисовать список подарков
+// Отрисовать список подарков (с пагинацией)
 function renderGifts() {
     const container = document.getElementById('gifts-list');
     
@@ -124,7 +128,11 @@ function renderGifts() {
         return;
     }
     
-    container.innerHTML = wishlistItems.map(item => {
+    const to = giftPage * GIFT_PAGE_SIZE;
+    const visible = wishlistItems.slice(0, to);
+    const hasMore = wishlistItems.length > to;
+    
+    container.innerHTML = visible.map(item => {
         const photo = item.photos?.[0];
         const status = item.status || 'available';
         const isGifted = status === 'gifted';
@@ -154,7 +162,11 @@ function renderGifts() {
                 </div>
             </div>
         `;
-    }).join('');
+    }).join('') + (hasMore ? `
+        <button type="button" class="btn btn-ghost pagination-more" onclick="giftPage++; renderGifts();">
+            Показать ещё (${wishlistItems.length - to} из ${wishlistItems.length})
+        </button>
+    ` : '');
 }
 
 // Выбрать подарок

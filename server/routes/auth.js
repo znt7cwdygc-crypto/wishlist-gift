@@ -92,30 +92,15 @@ router.post('/telegram', async (req, res) => {
         if (existing.rows.length > 0) {
             user = existing.rows[0];
             await db.query(
-                `UPDATE users SET
-                    username = COALESCE($2, username),
-                    first_name = COALESCE($3, first_name),
-                    last_name = COALESCE($4, last_name),
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = $1`,
-                [
-                    user.id,
-                    tgUser.username || user.username,
-                    tgUser.first_name || user.first_name,
-                    tgUser.last_name || user.last_name,
-                ]
+                'UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+                [user.id]
             );
         } else {
             const insert = await db.query(
-                `INSERT INTO users (telegram_id, username, first_name, last_name, role)
-                 VALUES ($1, $2, $3, $4, 'model')
+                `INSERT INTO users (telegram_id, role)
+                 VALUES ($1, 'model')
                  RETURNING *`,
-                [
-                    tgUser.id,
-                    tgUser.username || null,
-                    tgUser.first_name || null,
-                    tgUser.last_name || null,
-                ]
+                [tgUser.id]
             );
             user = insert.rows[0];
 
